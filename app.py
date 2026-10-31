@@ -268,36 +268,67 @@ elif page == "Video Detection":
 # ---------------- LIVE DETECTION ----------------
 
 elif page == "Live Detection":
-    st.title("📡 Continuous Live Helmet Detection")
-    st.write("Click the button below to start real-time video stream.")
+    st.title("📡 Smart Live Helmet Detection")
+    
+    # User ko choice dene ke liye selectbox
+    detection_mode = st.radio(
+        "CHOOSE DETECTION MODE:",
+        ["Continuous Live Stream (Webcam)", "Take a Snapshot (Photo)"]
+    )
+    st.markdown("---")
 
-    # Local webcam start karne ke liye button
-    run_live = st.checkbox("Turn On Camera")
-    FRAME_WINDOW = st.image([]) # Frame display karne ke liye khali jagah
-
-    if run_live:
-        # 0 ka matlab hai aapke laptop/PC ka default webcam
-        cap = cv2.VideoCapture(0)
+    # ----- OPTION 1: CONTINUOUS LIVE STREAM -----
+    if detection_mode == "Continuous Live Stream (Webcam)":
+        st.subheader("📡 Continuous Real-Time Detection")
+        st.write("Camera ke samne aayein, AI automatic live detect karega.")
         
-        while run_live:
-            ret, frame = cap.read()
-            if not ret:
-                st.error("Webcam access nahi ho saka.")
-                break
+        run_live = st.checkbox("Turn On Live Camera")
+        FRAME_WINDOW = st.image([])
 
-            # Frame ko format karna aur YOLO model se predict karwana
-            result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)[0]
-            annotated = result.plot()
-            
-            # OpenCV BGR format ko Streamlit ke liye RGB mein badalna
-            annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-            
-            # Screen par frame update karna
-            FRAME_WINDOW.image(annotated, use_container_width=True)
-            
-        cap.release()
-    else:
-        st.write("Camera is turned off.")
+        if run_live:
+            cap = cv2.VideoCapture(0) # Local PC webcam loader
+            while run_live:
+                ret, frame = cap.read()
+                if not ret:
+                    st.error("Webcam access nahi ho saka.")
+                    break
+
+                # Prediction Logic
+                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
+                annotated = result.plot()
+                annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+                
+                # Live Frame Update
+                FRAME_WINDOW.image(annotated, use_container_width=True)
+            cap.release()
+
+    # ----- OPTION 2: TAKE A SNAPSHOT -----
+    elif detection_mode == "Take a Snapshot (Photo)":
+        st.subheader("📷 Manual Snapshot Mode")
+        st.write("Take a photo to analyze a static frame safely.")
+        
+        img_file_buffer = st.camera_input("Click to capture")
+
+        if img_file_buffer is not None:
+            bytes_data = img_file_buffer.getvalue()
+            cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+
+            with st.spinner("Analyzing snapshot..."):
+                result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)
+                annotated = result.plot()
+                annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+
+            st.image(annotated, caption="Detection Result", use_container_width=True)
+
+            # Details
+            if result.boxes is not None and len(result.boxes) > 0:
+                for box in result.boxes:
+                    class_id = int(box.cls)
+                    confidence = float(box.conf) * 100
+                    label = model.names[class_id]
+                    st.write(f"**{label}** — {confidence:.1f}% confidence")
+            else:
+                st.info("No helmets detected in this snapshot.")
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
