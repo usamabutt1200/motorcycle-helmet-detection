@@ -271,17 +271,15 @@ elif page == "Live Detection":
     st.title("📡 Live Helmet Detection")
     st.write("Start your webcam to detect helmets.")
 
-    # Functional callback jo naye streamlit-webrtc versions mein zaroori hai
     def video_frame_callback(frame):
         img = frame.to_ndarray(format="bgr24")
 
-        # Helmet detection model inference
         result = model.predict(img, conf=0.35, imgsz=640, verbose=False)[0]
         annotated = result.plot()
 
         return av.VideoFrame.from_ndarray(annotated, format="bgr24")
 
-    # Complete WebRTC Configuration with working public STUN servers
+    # Humne iceServers ka poora jhamela hi khatam kar diya hai
     webrtc_streamer(
         key="helmet-live",
         mode=WebRtcMode.SENDRECV,
@@ -290,17 +288,9 @@ elif page == "Live Detection":
             "video": True,
             "audio": False
         },
-        rtc_configuration={
-            "iceServers": [
-                {"urls": ["stun:://google.com"]},
-                {"urls": ["stun:://google.com"]},
-                {"urls": ["stun:://google.com"]},
-                {"urls": ["stun:://google.com"]},
-                {"urls": ["stun:://google.com"]}
-            ]
-        },
         async_processing=True
     )
+
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
