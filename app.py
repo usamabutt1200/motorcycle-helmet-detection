@@ -292,7 +292,7 @@ elif page == "Live Detection":
                 format="bgr24"
             )
 
-       webrtc_streamer(
+          webrtc_streamer(
         key="helmet-live",
         mode=WebRtcMode.SENDRECV,
         video_processor_factory=HelmetProcessor,
