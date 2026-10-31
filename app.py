@@ -269,27 +269,36 @@ elif page == "Video Detection":
 
 elif page == "Live Detection":
     st.title("📡 Live Helmet Detection")
-    st.write("Start your webcam to detect helmets.")
+    st.write("Take a snapshot from your webcam to run real-time helmet detection.")
 
-    def video_frame_callback(frame):
-        img = frame.to_ndarray(format="bgr24")
+    # Streamlit ka apna built-in camera input tool
+    img_file_buffer = st.camera_input("Take a picture")
 
-        result = model.predict(img, conf=0.35, imgsz=640, verbose=False)[0]
-        annotated = result.plot()
+    if img_file_buffer is not None:
+        # Image ko OpenCV format mein convert karna
+        bytes_data = img_file_buffer.getvalue()
+        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
 
-        return av.VideoFrame.from_ndarray(annotated, format="bgr24")
+        with st.spinner("Analyzing frame..."):
+            # Model prediction
+            result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)[0]
+            annotated = result.plot()
+            annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
 
-    # Humne iceServers ka poora jhamela hi khatam kar diya hai
-    webrtc_streamer(
-        key="helmet-live",
-        mode=WebRtcMode.SENDRECV,
-        video_frame_callback=video_frame_callback,
-        media_stream_constraints={
-            "video": True,
-            "audio": False
-        },
-        async_processing=True
-    )
+        # Result display karna
+        st.image(annotated, caption="Detection Result", use_container_width=True)
+
+        # Detection Details dikhana
+        if result.boxes is not None and len(result.boxes) > 0:
+            st.subheader("Objects Detected:")
+            for box in result.boxes:
+                class_id = int(box.cls[0])
+                confidence = float(box.conf[0]) * 100
+                label = model.names[class_id]
+                st.write(f"**{label}** — {confidence:.1f}% confidence")
+        else:
+            st.info("No helmets or riders detected in this snapshot.")
+
 
 
 # ---------------- FOOTER ----------------
