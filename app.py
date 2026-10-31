@@ -7,7 +7,6 @@ import numpy as np
 from PIL import Image
 from ultralytics import YOLO
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, WebRtcMode
-from pathlib import Path
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -16,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- PREMIUM CSS ----------------
+# ---------------- PREMIUM DESIGN ----------------
 st.markdown("""
 <style>
 .stApp {
@@ -33,15 +32,24 @@ h1, h2, h3 {
 p, label {
     color: #d5dbea;
 }
-div.stButton > button {
+.card {
+    background: #17243a;
+    padding: 24px;
+    border: 1px solid #34435b;
+    border-radius: 18px;
+    margin-bottom: 18px;
+}
+div.stButton > button,
+div.stDownloadButton > button {
     background: linear-gradient(90deg, #c99a3b, #f5d58a);
     color: #101827;
     border: none;
     border-radius: 10px;
     font-weight: bold;
-    padding: 0.65rem 1.2rem;
+    min-height: 45px;
 }
-div.stButton > button:hover {
+div.stButton > button:hover,
+div.stDownloadButton > button:hover {
     background: #ffffff;
     color: #101827;
 }
@@ -50,13 +58,6 @@ div.stButton > button:hover {
     border: 1px dashed #c99a3b;
     border-radius: 14px;
     padding: 15px;
-}
-.card {
-    background: #17243a;
-    padding: 22px;
-    border: 1px solid #34435b;
-    border-radius: 16px;
-    margin-bottom: 15px;
 }
 .small-text {
     color: #aab6ca;
@@ -73,7 +74,7 @@ def load_model():
 try:
     model = load_model()
 except Exception as e:
-    st.error("Model load nahi hua. Check karein ke helmet_model.pt repository mein mojood hai.")
+    st.error("Model load nahi ho saka. Check karein ke helmet_model.pt repository mein mojood hai.")
     st.stop()
 
 # ---------------- HEADER ----------------
@@ -97,13 +98,12 @@ page = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("**AI Detection System**")
 st.sidebar.caption("Powered by YOLOv8")
 
 # ---------------- DASHBOARD ----------------
 if page == "Dashboard":
     st.title("Dashboard")
-    st.markdown("### Welcome to Helmet AI")
+    st.write("Welcome to Helmet AI")
 
     col1, col2, col3 = st.columns(3)
 
@@ -134,6 +134,7 @@ if page == "Dashboard":
 # ---------------- IMAGE DETECTION ----------------
 elif page == "Image Detection":
     st.title("📷 Image Detection")
+
     uploaded_image = st.file_uploader(
         "Upload an image",
         type=["jpg", "jpeg", "png"]
@@ -141,33 +142,44 @@ elif page == "Image Detection":
 
     if uploaded_image:
         image = Image.open(uploaded_image).convert("RGB")
-        results = model.predict(
-            np.array(image),
-            conf=0.35,
-            imgsz=640,
-            verbose=False
-        )
 
-        annotated = results[0].plot()
-        annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+        if st.button("Run Detection"):
+            with st.spinner("Analyzing image..."):
+                result = model.predict(
+                    np.array(image),
+                    conf=0.35,
+                    imgsz=640,
+                    verbose=False
+                )[0]
 
-        col1, col2 = st.columns(2)
+                annotated = result.plot()
+                annotated = cv2.cvtColor(
+                    annotated, cv2.COLOR_BGR2RGB
+                )
 
-        with col1:
-            st.subheader("Original Image")
-            st.image(image, use_container_width=True)
+            col1, col2 = st.columns(2)
 
-        with col2:
-            st.subheader("Detection Result")
-            st.image(annotated, use_container_width=True)
+            with col1:
+                st.subheader("Original Image")
+                st.image(image, use_container_width=True)
 
-        st.markdown("### Detection Details")
-        for box in results[0].boxes:
-            class_id = int(box.cls[0])
-            confidence = float(box.conf[0]) * 100
-            label = model.names[class_id]
+            with col2:
+                st.subheader("Detection Result")
+                st.image(annotated, use_container_width=True)
 
-            st.write(f"**{label}** — {confidence:.1f}% confidence")
+            st.subheader("Detection Details")
+
+            if result.boxes is None or len(result.boxes) == 0:
+                st.info("No helmets detected.")
+            else:
+                for box in result.boxes:
+                    class_id = int(box.cls[0])
+                    confidence = float(box.conf[0]) * 100
+                    label = model.names[class_id]
+
+                    st.write(
+                        f"**{label}** — {confidence:.1f}% confidence"
+                    )
 
 # ---------------- VIDEO DETECTION ----------------
 elif page == "Video Detection":
@@ -178,76 +190,80 @@ elif page == "Video Detection":
         type=["mp4", "avi", "mov", "mkv"]
     )
 
-    if uploaded_video:
-        if st.button("Start Video Detection"):
-            with st.spinner("Processing video... Please wait"):
+    if uploaded_video and st.button("Start Video Detection"):
 
-                with tempfile.NamedTemporaryFile(
-                    delete=False, suffix=".mp4"
-                ) as input_file:
-                    input_file.write(uploaded_video.read())
-                    input_path = input_file.name
+        with st.spinner("Processing video... Please wait"):
 
-                cap = cv2.VideoCapture(input_path)
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=".mp4"
+            ) as input_file:
+                input_file.write(uploaded_video.getvalue())
+                input_path = input_file.name
 
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                if not fps or fps <= 0:
-                    fps = 25
+            cap = cv2.VideoCapture(input_path)
 
-                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            if not fps or fps <= 0:
+                fps = 25
 
-                output_path = tempfile.NamedTemporaryFile(
-                    delete=False, suffix=".mp4"
-                ).name
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-                writer = cv2.VideoWriter(
-                    output_path,
-                    cv2.VideoWriter_fourcc(*"mp4v"),
-                    fps,
-                    (width, height)
-                )
+            output_path = tempfile.NamedTemporaryFile(
+                delete=False, suffix=".mp4"
+            ).name
 
-                progress = st.progress(0)
-                total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                frame_count = 0
-
-                while cap.isOpened():
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-
-                    result = model.predict(
-                        frame,
-                        conf=0.35,
-                        imgsz=640,
-                        verbose=False
-                    )[0]
-
-                    writer.write(result.plot())
-                    frame_count += 1
-
-                    if total_frames > 0:
-                        progress.progress(
-                            min(frame_count / total_frames, 1.0)
-                        )
-
-                cap.release()
-                writer.release()
-
-            st.success("Video detection completed!")
-
-            with open(output_path, "rb") as output_file:
-                video_bytes = output_file.read()
-
-            st.video(video_bytes)
-
-            st.download_button(
-                "⬇️ Download Processed Video",
-                data=video_bytes,
-                file_name="helmet_detection_result.mp4",
-                mime="video/mp4"
+            writer = cv2.VideoWriter(
+                output_path,
+                cv2.VideoWriter_fourcc(*"mp4v"),
+                fps,
+                (width, height)
             )
+
+            total_frames = int(
+                cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            )
+
+            progress = st.progress(0)
+            frame_count = 0
+
+            while cap.isOpened():
+                ret, frame = cap.read()
+
+                if not ret:
+                    break
+
+                result = model.predict(
+                    frame,
+                    conf=0.35,
+                    imgsz=640,
+                    verbose=False
+                )[0]
+
+                writer.write(result.plot())
+                frame_count += 1
+
+                if total_frames > 0:
+                    progress.progress(
+                        min(frame_count / total_frames, 1.0)
+                    )
+
+            cap.release()
+            writer.release()
+
+        st.success("Video detection completed!")
+
+        with open(output_path, "rb") as file:
+            video_bytes = file.read()
+
+        st.video(video_bytes)
+
+        st.download_button(
+            "⬇️ Download Processed Video",
+            data=video_bytes,
+            file_name="helmet_detection_result.mp4",
+            mime="video/mp4"
+        )
 
 # ---------------- LIVE DETECTION ----------------
 elif page == "Live Detection":
@@ -255,6 +271,7 @@ elif page == "Live Detection":
     st.write("Start your webcam to detect helmets.")
 
     class HelmetProcessor(VideoProcessorBase):
+
         def __init__(self):
             self.model = model
 
@@ -286,10 +303,10 @@ elif page == "Live Detection":
         async_processing=True
     )
 
+# ---------------- FOOTER ----------------
 st.markdown("---")
-st.markdown(
-    "<p style='text-align:center;color:#aab6ca;'>"
-    "HELMET AI | Intelligent Detection Platform"
-    "</p>",
-    unsafe_allow_html=True
-)
+st.markdown("""
+<p style="text-align:center;color:#aab6ca;">
+    HELMET AI | Intelligent Detection Platform
+</p>
+""", unsafe_allow_html=True)
