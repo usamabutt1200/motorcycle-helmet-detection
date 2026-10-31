@@ -1,3 +1,4 @@
 streamlit
-ultralytics==8.0.0
+setuptools
 opencv-python-headless
+ultralytics
