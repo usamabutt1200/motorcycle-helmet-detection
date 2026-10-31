@@ -1,5 +1,2 @@
 streamlit
-ultralytics-cpu
-opencv-python-headless
 streamlit-webrtc
-pyav
