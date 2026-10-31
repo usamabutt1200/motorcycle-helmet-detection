@@ -265,44 +265,43 @@ elif page == "Video Detection":
             mime="video/mp4"
         )
 
+# ---------------- LIVE DETECTION ----------------
+
 elif page == "Live Detection":
     st.title("📡 Live Helmet Detection")
     st.write("Start your webcam to detect helmets.")
 
-    class HelmetProcessor(VideoProcessorBase):
-        def __init__(self):
-            self.model = model
+    # Functional callback jo naye streamlit-webrtc versions mein zaroori hai
+    def video_frame_callback(frame):
+        img = frame.to_ndarray(format="bgr24")
 
-        def recv(self, frame):
-            image = frame.to_ndarray(format="bgr24")
+        # Helmet detection model inference
+        result = model.predict(img, conf=0.35, imgsz=640, verbose=False)[0]
+        annotated = result.plot()
 
-            result = self.model.predict(
-                image,
-                conf=0.35,
-                imgsz=640,
-                verbose=False
-            )[0]
+        return av.VideoFrame.from_ndarray(annotated, format="bgr24")
 
-            annotated = result.plot()
-
-            return av.VideoFrame.from_ndarray(
-                annotated,
-                format="bgr24"
-            )
-
+    # Complete WebRTC Configuration with working public STUN servers
     webrtc_streamer(
         key="helmet-live",
         mode=WebRtcMode.SENDRECV,
-        video_processor_factory=HelmetProcessor,
+        video_frame_callback=video_frame_callback,
         media_stream_constraints={
             "video": True,
             "audio": False
         },
         rtc_configuration={
-            "iceServers": []
+            "iceServers": [
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]}
+            ]
         },
         async_processing=True
     )
+
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.markdown("""
