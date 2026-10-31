@@ -292,6 +292,7 @@ elif page == "Live Detection":
                 format="bgr24"
             )
 
+    # YAHAN SE CHANGES HAIN: iceServers mein Google ke public STUN servers add kiye hain
     webrtc_streamer(
         key="helmet-live",
         mode=WebRtcMode.SENDRECV,
@@ -301,10 +302,15 @@ elif page == "Live Detection":
             "audio": False
         },
         rtc_configuration={
-            "iceServers": []
+            "iceServers": [
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]}
+            ]
         },
         async_processing=True
     )
+
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.markdown("""
