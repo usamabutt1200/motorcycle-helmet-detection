@@ -292,7 +292,7 @@ elif page == "Live Detection":
                 format="bgr24"
             )
 
-    webrtc_streamer(
+       webrtc_streamer(
         key="helmet-live",
         mode=WebRtcMode.SENDRECV,
         video_processor_factory=HelmetProcessor,
@@ -301,14 +301,10 @@ elif page == "Live Detection":
             "audio": False
         },
         rtc_configuration={
-            "iceServers": [
-                {"urls": ["stun:stun.l.google.com:19302"]}
-            ]
+            "iceServers": []
         },
         async_processing=True
     )
-
-
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.markdown("""
