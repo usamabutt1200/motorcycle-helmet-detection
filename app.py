@@ -1,16 +1,3 @@
-import subprocess
-import sys
-
-# Yeh code missing libraries ko cloud par crash kiye bina automatic install karega
-try:
-    import ultralytics
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "ultralytics-cpu"])
-
-try:
-    import av
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyav"])
 
 import streamlit as st
 import cv2
