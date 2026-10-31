@@ -6,3 +6,4 @@ numpy==1.26.4
 pillow
 streamlit-webrtc==0.47.9
 aiortc==1.9.0
+tornado
