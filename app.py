@@ -293,8 +293,8 @@ elif page == "Live Detection":
                     st.error("Webcam access nahi ho saka.")
                     break
 
-                # Prediction Logic
-                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
+                # Prediction Logic (Yahan [0] add kar diya hai fix karne ke liye)
+                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)[0]
                 annotated = result.plot()
                 annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
                 
@@ -314,7 +314,8 @@ elif page == "Live Detection":
             cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
 
             with st.spinner("Analyzing snapshot..."):
-                result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)
+                # Prediction Logic (Yahan bhi [0] add kar diya hai)
+                result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)[0]
                 annotated = result.plot()
                 annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
 
@@ -323,12 +324,14 @@ elif page == "Live Detection":
             # Details
             if result.boxes is not None and len(result.boxes) > 0:
                 for box in result.boxes:
-                    class_id = int(box.cls)
-                    confidence = float(box.conf) * 100
+                    class_id = int(box.cls[0])
+                    confidence = float(box.conf[0]) * 100
                     label = model.names[class_id]
                     st.write(f"**{label}** — {confidence:.1f}% confidence")
             else:
                 st.info("No helmets detected in this snapshot.")
+
+
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
