@@ -268,38 +268,36 @@ elif page == "Video Detection":
 # ---------------- LIVE DETECTION ----------------
 
 elif page == "Live Detection":
-    st.title("📡 Live Helmet Detection")
-    st.write("Take a snapshot from your webcam to run real-time helmet detection.")
+    st.title("📡 Continuous Live Helmet Detection")
+    st.write("Click the button below to start real-time video stream.")
 
-    # Streamlit ka apna built-in camera input tool
-    img_file_buffer = st.camera_input("Take a picture")
+    # Local webcam start karne ke liye button
+    run_live = st.checkbox("Turn On Camera")
+    FRAME_WINDOW = st.image([]) # Frame display karne ke liye khali jagah
 
-    if img_file_buffer is not None:
-        # Image ko OpenCV format mein convert karna
-        bytes_data = img_file_buffer.getvalue()
-        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+    if run_live:
+        # 0 ka matlab hai aapke laptop/PC ka default webcam
+        cap = cv2.VideoCapture(0)
+        
+        while run_live:
+            ret, frame = cap.read()
+            if not ret:
+                st.error("Webcam access nahi ho saka.")
+                break
 
-        with st.spinner("Analyzing frame..."):
-            # Model prediction
-            result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)[0]
+            # Frame ko format karna aur YOLO model se predict karwana
+            result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)[0]
             annotated = result.plot()
+            
+            # OpenCV BGR format ko Streamlit ke liye RGB mein badalna
             annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-
-        # Result display karna
-        st.image(annotated, caption="Detection Result", use_container_width=True)
-
-        # Detection Details dikhana
-        if result.boxes is not None and len(result.boxes) > 0:
-            st.subheader("Objects Detected:")
-            for box in result.boxes:
-                class_id = int(box.cls[0])
-                confidence = float(box.conf[0]) * 100
-                label = model.names[class_id]
-                st.write(f"**{label}** — {confidence:.1f}% confidence")
-        else:
-            st.info("No helmets or riders detected in this snapshot.")
-
-
+            
+            # Screen par frame update karna
+            FRAME_WINDOW.image(annotated, use_container_width=True)
+            
+        cap.release()
+    else:
+        st.write("Camera is turned off.")
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
