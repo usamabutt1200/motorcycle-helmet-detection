@@ -219,8 +219,7 @@ elif page == "Video Detection":
 
             final_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
-            # DIRECT BROWSER-COMPATIBLE CODEC (H.264 / AVC1)
-            # Yeh bina kisi extra library ke video ko direct chrome chalane ke kabil banata hai
+            # Direct browser-compatible codec (avc1)
             writer = cv2.VideoWriter(
                 final_output_path,
                 cv2.VideoWriter_fourcc(*"avc1"),
@@ -237,7 +236,8 @@ elif page == "Video Detection":
                 if not ret:
                     break
 
-                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
+                # FIXED: [0] lagaya hai taake list se pehla frame nikal kar plot() ho sake
+                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)[0]
                 writer.write(result.plot())
                 frame_count += 1
 
@@ -261,7 +261,6 @@ elif page == "Video Detection":
             file_name="helmet_detection_result.mp4",
             mime="video/mp4"
         )
-
 
 
 # ---------------- LIVE DETECTION ----------------
