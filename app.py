@@ -247,9 +247,9 @@ elif page == "Live Detection":
         cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
         
         with st.spinner("Parsing localized feature mappings..."):
-            # Fixed resolution back to 640 and lowered confidence threshold to 0.25 for instant accurate face detection
-            results = model.predict(cv2_img, conf=0.25, imgsz=640, verbose=False)
-            result = results[0]
+            # Conf=0.10 karne se model ko majbooran box draw karna parega thode se shaq par bhi
+            results = model.predict(cv2_img, conf=0.10, imgsz=640, verbose=False)
+            result = results[0] if isinstance(results, list) else results
             annotated = cv2.cvtColor(result.plot(), cv2.COLOR_BGR2RGB)
             
         st.subheader("🎯 Snapshot Verification Analysis")
@@ -257,9 +257,10 @@ elif page == "Live Detection":
         
         if result.boxes is not None and len(result.boxes) > 0:
             for box in result.boxes:
-                class_id = int(box.cls)
-                confidence = float(box.conf) * 100
+                class_id = int(box.cls[0]) if hasattr(box.cls, "__len__") else int(box.cls)
+                confidence = (float(box.conf[0]) if hasattr(box.conf, "__len__") else float(box.conf)) * 100
                 label = model.names[class_id]
                 st.error(f"Incident Event Flagged: **{label}** verified with a threshold of {confidence:.2f}%")
         else:
             st.success("Target environment assessment clear. No infractions logged.")
+
