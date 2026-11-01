@@ -202,48 +202,65 @@ elif page == "Video Detection":
 
     if uploaded_video and st.button("Start Video Detection"):
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
-            input_file.write(uploaded_video.getvalue())
-            input_path = input_file.name
+        with st.spinner("AI video ko process kar raha hai... Please wait"):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
+                input_file.write(uploaded_video.getvalue())
+                input_path = input_file.name
 
-        cap = cv2.VideoCapture(input_path)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        
-        # Smooth playback ke liye import time lazmi hai
-        import time
-
-        # st.empty() use karne se purani photo mitti jati hai aur nayi video smooth chalti hai
-        FRAME_WINDOW = st.empty()
-        progress = st.progress(0)
-        frame_count = 0
-
-        st.info("Video smoothly chal rahi hai. Niche live playback check karein:")
-
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # YOLO v8 Prediction
-            results = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
-            result = results[0]
+            cap = cv2.VideoCapture(input_path)
             
-            # Frame par boxes draw karna
-            annotated_frame = result.plot()
-            annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+            # Frames ko save karne ke liye aik khali list
+            gif_frames = []
+            frame_count = 0
             
-            # Real-time smooth update bina photo freeze kiye
-            FRAME_WINDOW.image(annotated_frame, use_container_width=True)
-            
-            # 0.01 ya 0.03 seconds ka chota sa pause browser ko video chalane mein madad deta hai
-            time.sleep(0.01)
-            
-            frame_count += 1
-            if total_frames > 0:
-                progress.progress(min(frame_count / total_frames, 1.0))
+            # Speed barhane ke liye hum har alternate frame uthayenge taake process jaldi ho
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                
+                # Server par load kam karne ke liye har 2 mein se 1 frame process karein
+                if frame_count % 2 == 0:
+                    results = model.predict(frame, conf=0.35, imgsz=640, verbose=False)[0]
+                    annotated_frame = results.plot()
+                    annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+                    
+                    # Size thoda chota kar rahe hain taake GIF smoothly load ho sake
+                    annotated_frame = cv2.resize(annotated_frame, (360, 640))
+                    gif_frames.append(annotated_frame)
+                    
+                frame_count += 1
+                
+            cap.release()
 
-        cap.release()
-        st.success("Video mukammal analyze ho chuki hai!")
+        # ----- GIF BANA KAR SCREEN PAR SHOW KARNA -----
+        if len(gif_frames) > 0:
+            with st.spinner("Video play karne ke liye tayar ki ja rahi hai..."):
+                import imageio
+                
+                # Output GIF path
+                gif_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".gif").name
+                
+                # Frames ko GIF file mein write karna (fps=12 smooth playback dega)
+                imageio.mimsave(gif_output_path, gif_frames, fps=12)
+                
+                st.success("Video successfully analyze ho gayi hai!")
+                
+                # Streamlit direct GIF ko smoothly bina freeze kiye play karega
+                st.image(gif_output_path, caption="Processed Video Playback", use_container_width=True)
+                
+                # Download karne ka option bhi wapas de rahe hain
+                with open(gif_output_path, "rb") as file:
+                    gif_bytes = file.read()
+                    
+                st.download_button(
+                    "⬇️ Download Processed Animation (GIF)",
+                    data=gif_bytes,
+                    file_name="helmet_detection_result.gif",
+                    mime="image/gif"
+                )
+        else:
+            st.error("Video se koi frames read nahi kiye ja sake.")
 
 # ---------------- LIVE DETECTION ----------------
 elif page == "Live Detection":
