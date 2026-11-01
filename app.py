@@ -278,34 +278,61 @@ elif page == "Video Detection":
 # ---------------- LIVE DETECTION ----------------
 elif page == "Live Detection":
     st.title("📡 Smart Live Helmet Detection")
-    st.write("Apna webcam on karein, AI automatic helmet detect karega.")
+    
+    detection_mode = st.radio(
+        "CHOOSE DETECTION MODE:",
+        ["Continuous Live Stream (Automatic Detection)", "Take a Snapshot (Photo Mode)"]
+    )
     st.markdown("---")
 
-    # Streamlit ka apna built-in camera tool (Yeh cloud par 100% chalta hai aur black screen nahi deta)
-    img_file_buffer = st.camera_input("Camera ke samne aayein")
-
-    if img_file_buffer is not None:
-        # Image ko read karna
-        bytes_data = img_file_buffer.getvalue()
-        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+    # ----- OPTION 1: CONTINUOUS LIVE STREAM (Bina click kiye automatic detect karega) -----
+    if detection_mode == "Continuous Live Stream (Automatic Detection)":
+        st.subheader("📡 Continuous Real-Time Detection")
+        st.write("Camera ke samne aayein, AI bina click kiye automatic live detect karega.")
         
-        with st.spinner("AI Analysis chal raha hai..."):
-            # YOLO v8 Prediction (Aap ke model ke mutabiq [0] laga diya hai)
-            result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)[0]
-            annotated = result.plot()
-            annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+        # Free Public STUN servers jo har internet (PTCL/Nayatel) par connection bypass kar dete hain
+        FIXED_RTC_CONFIG = {
+            "iceServers": [
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]},
+                {"urls": ["stun:://google.com"]}
+            ]
+        }
+
+        # Callback function jo live video ke har frame par bina rokay YOLO chalayega
+        def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
+            img = frame.to_ndarray(format="bgr24")
             
-        # Screen par direct result dikhana
-        st.subheader("🎯 Detection Result")
-        st.image(annotated, use_container_width=True)
-        
-        # Detection ki details niche dikhana
-        if result.boxes is not None and len(result.boxes) > 0:
-            for box in result.boxes:
-                class_id = int(box.cls[0]) if hasattr(box.cls, "__len__") else int(box.cls)
-                confidence = (float(box.conf[0]) if hasattr(box.conf, "__len__") else float(box.conf)) * 100
-                label = model.names[class_id]
-                st.success(f"**{label}** detect hua — {confidence:.1f}% confidence ke sath!")
-        else:
-            st.info("Camera ke samne koi helmet ya person nazar nahi aaya.")
+            # AI automatic prediction bina kisi click ke
+            results = model.predict(img, conf=0.35, imgsz=640, verbose=False)[0]
+            annotated_frame = results.plot()
+            
+            return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
+        # Streamlit WebRTC Streamer - Naye solid network configs ke sath
+        webrtc_streamer(
+            key="helmet-detection-continuous",
+            mode=WebRtcMode.SENDRECV,
+            rtc_configuration=FIXED_RTC_CONFIG,
+            video_frame_callback=video_frame_callback,
+            media_stream_constraints={"video": True, "audio": False},
+            async_processing=True,
+        )
+
+    # ----- OPTION 2: TAKE A SNAPSHOT (Jo aap ka pehle se sahi chal raha tha) -----
+    elif detection_mode == "Take a Snapshot (Photo Mode)":
+        st.subheader("📸 Snapshot Detection")
+        img_file_buffer = st.camera_input("Take a picture to analyze")
+
+        if img_file_buffer is not None:
+            bytes_data = img_file_buffer.getvalue()
+            cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+            
+            with st.spinner("Analyzing Snapshot..."):
+                result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)[0]
+                annotated = result.plot()
+                annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+                
+            st.image(annotated, use_container_width=True)
