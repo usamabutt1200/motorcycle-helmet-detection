@@ -228,28 +228,42 @@ elif page == "Video Detection":
 # ---------------- STATIC SNAPSHOT LIVE DETECTION ----------------
 elif page == "Live Detection":
     st.title("📸 Precision Snapshot Analytics")
-    st.write("Native single-frame capture mode to guarantee consistent application runtime stability.")
+    st.write("Capture an image to detect helmet violations.")
     st.markdown("---")
 
-    img_file_buffer = st.camera_input("Capture view matrix frame target")
+    img_file_buffer = st.camera_input("Capture image")
 
     if img_file_buffer is not None:
         bytes_data = img_file_buffer.getvalue()
-        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-        
-        with st.spinner("Parsing localized feature mappings..."):
-            # FIXED: Added [0] index and lowered confidence threshold for forceful indoor face tracking
-           result = model.predict(cv2_img, conf=0.05, imgsz=640, verbose=False)[0]
-            annotated = cv2.cvtColor(result.plot(), cv2.COLOR_BGR2RGB)
-            
-        st.subheader("🎯 Snapshot Verification Analysis")
+        cv2_img = cv2.imdecode(
+            np.frombuffer(bytes_data, np.uint8),
+            cv2.IMREAD_COLOR
+        )
+
+        with st.spinner("Detecting helmets..."):
+            result = model.predict(
+                cv2_img,
+                conf=0.05,
+                imgsz=640,
+                verbose=False
+            )[0]
+
+            annotated = cv2.cvtColor(
+                result.plot(),
+                cv2.COLOR_BGR2RGB
+            )
+
+        st.subheader("🎯 Detection Results")
         st.image(annotated, use_container_width=True)
-        
+
         if result.boxes is not None and len(result.boxes) > 0:
             for box in result.boxes:
                 class_id = int(box.cls[0])
                 confidence = float(box.conf[0]) * 100
                 label = model.names[class_id]
-                st.error(f"Incident Event Flagged: **{label}** verified with a threshold of {confidence:.2f}%")
+
+                st.success(
+                    f"Detected: {label} — {confidence:.2f}%"
+                )
         else:
-            st.success("Target environment assessment clear. No infractions logged.")
+            st.warning("No helmet-related objects detected.")
