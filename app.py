@@ -239,7 +239,7 @@ elif page == "Live Detection":
         
         with st.spinner("Parsing localized feature mappings..."):
             # FIXED: Added [0] index and lowered confidence threshold for forceful indoor face tracking
-            result = model.predict(cv2_img, conf=0.15, imgsz=640, verbose=False)[0]
+           result = model.predict(cv2_img, conf=0.05, imgsz=640, verbose=False)[0]
             annotated = cv2.cvtColor(result.plot(), cv2.COLOR_BGR2RGB)
             
         st.subheader("🎯 Snapshot Verification Analysis")
