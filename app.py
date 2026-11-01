@@ -243,7 +243,7 @@ elif page == "Live Detection":
         with st.spinner("Detecting helmets..."):
             result = model.predict(
                 cv2_img,
-                conf=0.05,
+                conf=0.35,
                 imgsz=640,
                 verbose=False
             )[0]
