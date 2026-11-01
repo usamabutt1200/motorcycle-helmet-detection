@@ -217,12 +217,13 @@ elif page == "Video Detection":
             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            # Temporary raw video output path
-            raw_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+            final_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
+            # DIRECT BROWSER-COMPATIBLE CODEC (H.264 / AVC1)
+            # Yeh bina kisi extra library ke video ko direct chrome chalane ke kabil banata hai
             writer = cv2.VideoWriter(
-                raw_output_path,
-                cv2.VideoWriter_fourcc(*"mp4v"),
+                final_output_path,
+                cv2.VideoWriter_fourcc(*"avc1"),
                 fps,
                 (width, height)
             )
@@ -236,7 +237,7 @@ elif page == "Video Detection":
                 if not ret:
                     break
 
-                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)[0]
+                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
                 writer.write(result.plot())
                 frame_count += 1
 
@@ -246,41 +247,20 @@ elif page == "Video Detection":
             cap.release()
             writer.release()
 
-        # --- NEW CODE: Raw video ko Browser-Friendly (H.264) format mein convert karna ---
-        with st.spinner("Optimizing video format for browser playback..."):
-            try:
-                from moviepy.video.io.VideoFileClip import VideoFileClip
-                final_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                
-                # MoviePy ke zariye libx264 codec mein convert karna
-                clip = VideoFileClip(raw_output_path)
-                clip.write_videofile(final_output_path, codec="libx264", audio=False, verbose=False, logger=None)
-                clip.close()
-                
-                st.success("Video detection completed!")
+        st.success("Video detection completed successfully!")
 
-                with open(final_output_path, "rb") as file:
-                    video_bytes = file.read()
+        with open(final_output_path, "rb") as file:
+            video_bytes = file.read()
 
-                # Browser mein video player smoothly chal parega
-                st.video(video_bytes)
+        # Direct player mein output chal parega bina ghoome
+        st.video(video_bytes)
 
-                st.download_button(
-                    "⬇️ Download Processed Video",
-                    data=video_bytes,
-                    file_name="helmet_detection_result.mp4",
-                    mime="video/mp4"
-                )
-            except Exception as e:
-                st.error("Video format convert nahi ho saka. Aap processed file direct download kar sakte hain.")
-                with open(raw_output_path, "rb") as file:
-                    raw_bytes = file.read()
-                st.download_button(
-                    "⬇️ Download Raw Processed Video",
-                    data=raw_bytes,
-                    file_name="helmet_detection_raw.mp4",
-                    mime="video/mp4"
-                )
+        st.download_button(
+            "⬇️ Download Processed Video",
+            data=video_bytes,
+            file_name="helmet_detection_result.mp4",
+            mime="video/mp4"
+        )
 
 
 
