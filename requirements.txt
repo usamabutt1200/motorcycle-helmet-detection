@@ -2,4 +2,4 @@ streamlit
 setuptools
 opencv-python-headless
 ultralytics
-av
+streamlit_webrtc
