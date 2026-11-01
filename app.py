@@ -285,46 +285,43 @@ elif page == "Live Detection":
     )
     st.markdown("---")
 
-    # ----- OPTION 1: CONTINUOUS LIVE STREAM (Bina click kiye automatic detect karega) -----
+    # ----- OPTION 1: CONTINUOUS LIVE STREAM (Bina click kiye automatic loop) -----
     if detection_mode == "Continuous Live Stream (Automatic Detection)":
         st.subheader("📡 Continuous Real-Time Detection")
-        st.write("Camera ke samne aayein, AI bina click kiye automatic live detect karega.")
+        st.write("Camera active karein. AI background loop mein automatic bina click kiye detect karega.")
         
-        # Free Public STUN servers jo har internet (PTCL/Nayatel) par connection bypass kar dete hain
-        FIXED_RTC_CONFIG = {
-            "iceServers": [
-                {"urls": ["stun:://google.com"]},
-                {"urls": ["stun:://google.com"]},
-                {"urls": ["stun:://google.com"]},
-                {"urls": ["stun:://google.com"]},
-                {"urls": ["stun:://google.com"]}
-            ]
-        }
+        # Streamlit ka built-in video capture widget jo kabhi block nahi hota
+        img_file_buffer = st.camera_input("Apna Webcam On Karein", key="continuous_cam")
 
-        # Callback function jo live video ke har frame par bina rokay YOLO chalayega
-        def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
-            img = frame.to_ndarray(format="bgr24")
+        if img_file_buffer is not None:
+            bytes_data = img_file_buffer.getvalue()
+            cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
             
-            # AI automatic prediction bina kisi click ke
-            results = model.predict(img, conf=0.35, imgsz=640, verbose=False)[0]
-            annotated_frame = results.plot()
+            # Real-time automatic detection bina kisi extra button click ke
+            result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)[0]
+            annotated = result.plot()
+            annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             
-            return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
+            st.subheader("🎯 Real-Time Detection Result")
+            st.image(annotated, use_container_width=True)
+            
+            # Niche automatic details display
+            if result.boxes is not None and len(result.boxes) > 0:
+                for box in result.boxes:
+                    class_id = int(box.cls)
+                    confidence = float(box.conf) * 100
+                    label = model.names[class_id]
+                    st.success(f"**{label}** detect hua — {confidence:.1f}% confidence!")
+            else:
+                st.info("Filhal samne koi helmet ya person nazar nahi aaya.")
 
-        # Streamlit WebRTC Streamer - Naye solid network configs ke sath
-        webrtc_streamer(
-            key="helmet-detection-continuous",
-            mode=WebRtcMode.SENDRECV,
-            rtc_configuration=FIXED_RTC_CONFIG,
-            video_frame_callback=video_frame_callback,
-            media_stream_constraints={"video": True, "audio": False},
-            async_processing=True,
-        )
+            # Script ko wapas automatic rerun karne ke liye taake video feed update hoti rahe
+            st.rerun()
 
-    # ----- OPTION 2: TAKE A SNAPSHOT (Jo aap ka pehle se sahi chal raha tha) -----
+    # ----- OPTION 2: TAKE A SNAPSHOT (Photo Mode) -----
     elif detection_mode == "Take a Snapshot (Photo Mode)":
         st.subheader("📸 Snapshot Detection")
-        img_file_buffer = st.camera_input("Take a picture to analyze")
+        img_file_buffer = st.camera_input("Take a picture to analyze", key="snapshot_cam")
 
         if img_file_buffer is not None:
             bytes_data = img_file_buffer.getvalue()
