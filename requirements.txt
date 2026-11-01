@@ -3,3 +3,4 @@ setuptools
 opencv-python-headless
 ultralytics
 streamlit_webrtc
+ffmpeg-python
