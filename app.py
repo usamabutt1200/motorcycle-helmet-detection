@@ -240,7 +240,6 @@ elif page == "Live Detection":
     st.write("Native single-frame capture mode to guarantee consistent application runtime stability.")
     st.markdown("---")
 
-    # Pure snapshot approach to prevent processing lags or connection failures
     img_file_buffer = st.camera_input("Capture view matrix frame target")
 
     if img_file_buffer is not None:
@@ -248,8 +247,8 @@ elif page == "Live Detection":
         cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
         
         with st.spinner("Parsing localized feature mappings..."):
-            # Execute prediction with index slicing fix applied
-            results = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)
+            # Fixed resolution back to 640 and lowered confidence threshold to 0.25 for instant accurate face detection
+            results = model.predict(cv2_img, conf=0.25, imgsz=640, verbose=False)
             result = results[0]
             annotated = cv2.cvtColor(result.plot(), cv2.COLOR_BGR2RGB)
             
@@ -258,8 +257,8 @@ elif page == "Live Detection":
         
         if result.boxes is not None and len(result.boxes) > 0:
             for box in result.boxes:
-                class_id = int(box.cls[0])
-                confidence = float(box.conf[0]) * 100
+                class_id = int(box.cls)
+                confidence = float(box.conf) * 100
                 label = model.names[class_id]
                 st.error(f"Incident Event Flagged: **{label}** verified with a threshold of {confidence:.2f}%")
         else:
