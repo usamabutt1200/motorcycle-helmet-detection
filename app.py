@@ -221,7 +221,7 @@ elif page == "Video Detection":
             # Raw output path jahan OpenCV file likhega
             raw_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
-            # H264 baseline encoder settings jo bina ffmpeg ke file completely save karti hain
+            # H264 baseline encoder settings
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             writer = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
 
@@ -237,7 +237,8 @@ elif page == "Video Detection":
 
                 # High-speed check
                 if frame_count % 2 == 0:
-                    results = model.predict(frame, conf=0.35, imgsz=320, verbose=False)
+                    # FIXED: [0] lagaya hai taake list se results nikal kar plot() ho sake
+                    results = model.predict(frame, conf=0.35, imgsz=320, verbose=False)[0]
                     annotated_frame = results.plot()
                 else:
                     annotated_frame = frame
