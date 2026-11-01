@@ -204,9 +204,7 @@ elif page == "Video Detection":
 
         with st.spinner("Processing video... Please wait"):
 
-            with tempfile.NamedTemporaryFile(
-                delete=False, suffix=".mp4"
-            ) as input_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
                 input_file.write(uploaded_video.getvalue())
                 input_path = input_file.name
 
@@ -219,61 +217,72 @@ elif page == "Video Detection":
             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            output_path = tempfile.NamedTemporaryFile(
-                delete=False, suffix=".mp4"
-            ).name
+            # Temporary raw video output path
+            raw_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
             writer = cv2.VideoWriter(
-                output_path,
+                raw_output_path,
                 cv2.VideoWriter_fourcc(*"mp4v"),
                 fps,
                 (width, height)
             )
 
-            total_frames = int(
-                cap.get(cv2.CAP_PROP_FRAME_COUNT)
-            )
-
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             progress = st.progress(0)
             frame_count = 0
 
             while cap.isOpened():
                 ret, frame = cap.read()
-
                 if not ret:
                     break
 
-                result = model.predict(
-                    frame,
-                    conf=0.35,
-                    imgsz=640,
-                    verbose=False
-                )[0]
-
+                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)[0]
                 writer.write(result.plot())
                 frame_count += 1
 
                 if total_frames > 0:
-                    progress.progress(
-                        min(frame_count / total_frames, 1.0)
-                    )
+                    progress.progress(min(frame_count / total_frames, 1.0))
 
             cap.release()
             writer.release()
 
-        st.success("Video detection completed!")
+        # --- NEW CODE: Raw video ko Browser-Friendly (H.264) format mein convert karna ---
+        with st.spinner("Optimizing video format for browser playback..."):
+            try:
+                from moviepy.video.io.VideoFileClip import VideoFileClip
+                final_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                
+                # MoviePy ke zariye libx264 codec mein convert karna
+                clip = VideoFileClip(raw_output_path)
+                clip.write_videofile(final_output_path, codec="libx264", audio=False, verbose=False, logger=None)
+                clip.close()
+                
+                st.success("Video detection completed!")
 
-        with open(output_path, "rb") as file:
-            video_bytes = file.read()
+                with open(final_output_path, "rb") as file:
+                    video_bytes = file.read()
 
-        st.video(video_bytes)
+                # Browser mein video player smoothly chal parega
+                st.video(video_bytes)
 
-        st.download_button(
-            "⬇️ Download Processed Video",
-            data=video_bytes,
-            file_name="helmet_detection_result.mp4",
-            mime="video/mp4"
-        )
+                st.download_button(
+                    "⬇️ Download Processed Video",
+                    data=video_bytes,
+                    file_name="helmet_detection_result.mp4",
+                    mime="video/mp4"
+                )
+            except Exception as e:
+                st.error("Video format convert nahi ho saka. Aap processed file direct download kar sakte hain.")
+                with open(raw_output_path, "rb") as file:
+                    raw_bytes = file.read()
+                st.download_button(
+                    "⬇️ Download Raw Processed Video",
+                    data=raw_bytes,
+                    file_name="helmet_detection_raw.mp4",
+                    mime="video/mp4"
+                )
+
+
 
 # ---------------- LIVE DETECTION ----------------
 elif page == "Live Detection":
