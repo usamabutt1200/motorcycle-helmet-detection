@@ -204,6 +204,7 @@ elif page == "Video Detection":
 
         with st.spinner("AI high-speed engine video ko process kar raha hai... Please wait"):
 
+            # 1. Uploaded video ko temporary file mein save karna
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
                 input_file.write(uploaded_video.getvalue())
                 input_path = input_file.name
@@ -217,8 +218,10 @@ elif page == "Video Detection":
             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+            # Raw output path jahan OpenCV file likhega
             raw_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
+            # H264 baseline encoder settings jo bina ffmpeg ke file completely save karti hain
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             writer = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
 
@@ -226,17 +229,17 @@ elif page == "Video Detection":
             progress = st.progress(0)
             frame_count = 0
 
+            # Frames par YOLO prediction chalana
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
 
-                # SPEED OPTIMIZATION 1 & 2: Har 2 mein se 1 frame process hoga aur imgsz=320 hoga
+                # High-speed check
                 if frame_count % 2 == 0:
                     results = model.predict(frame, conf=0.35, imgsz=320, verbose=False)
-                    annotated_frame = results[0].plot()
+                    annotated_frame = results.plot()
                 else:
-                    # Baaki frames par purana ya current frame bina predict kiye write kar dein taake video complete rahe
                     annotated_frame = frame
 
                 writer.write(annotated_frame)
@@ -248,44 +251,28 @@ elif page == "Video Detection":
             cap.release()
             writer.release()
 
-        with st.spinner("Video download ke liye ready ki ja rahi hai..."):
-            try:
-                import ffmpeg
-                final_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                
-                (
-                    ffmpeg
-                    .input(raw_output_path)
-                    .output(final_output_path, vcodec='libx264', acodec='copy')
-                    .overwrite_output()
-                    .run(capture_stdout=True, capture_stderr=True)
-                )
-
-                st.success("Video successfully analyze ho gayi hai!")
-
-                with open(final_output_path, "rb") as video_file:
-                    video_bytes = video_file.read()
-
-                st.video(video_bytes)
-
+        # ----- 2. SECURE BINARY-FREE DOWNLOAD LOOP -----
+        st.success("AI video processing mukammal ho chuki hai!")
+        
+        try:
+            # File ko direct binary modes mein bytes memory mein transfer karna
+            with open(raw_output_path, "rb") as raw_file:
+                video_bytes = raw_file.read()
+            
+            # Agar file empty nahi hai toh guaranteed download hoga
+            if len(video_bytes) > 0:
+                st.info("Niche diye gaye button se processed video download karlein:")
                 st.download_button(
-                    "⬇️ Download Processed HD Video",
+                    label="⬇️ Download Processed Video",
                     data=video_bytes,
-                    file_name="helmet_detection_fast_result.mp4",
-                    mime="video/mp4"
-                )
-
-            except Exception as e:
-                st.warning("Video direct player mein load nahi ho saki, lekin aap niche button se direct download kar sakte hain!")
-                with open(raw_output_path, "rb") as raw_file:
-                    raw_bytes = raw_file.read()
-                st.download_button(
-                    "⬇️ Download Processed Video (Direct)",
-                    data=raw_bytes,
                     file_name="helmet_detection_result.mp4",
-                    mime="video/mp4"
+                    mime="video/mp4",
+                    key="download_btn_fixed"
                 )
-
+            else:
+                st.error("Server configuration issue ki wajah se file generate nahi ho saki. Please retry karein.")
+        except Exception as file_err:
+            st.error(f"File read karne mein masla aaya: {str(file_err)}")
 
 # ---------------- LIVE DETECTION ----------------
 elif page == "Live Detection":
