@@ -300,15 +300,15 @@ elif page == "Live Detection":
             
             return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
 
-        # Streamlit WebRTC Streamer Tool
+                # Streamlit WebRTC Streamer Tool (Bina rtc_configuration ke)
         webrtc_streamer(
             key="helmet-detection",
             mode=WebRtcMode.SENDRECV,
-            rtc_configuration=RTC_CONFIGURATION,
             video_frame_callback=video_frame_callback,
             media_stream_constraints={"video": True, "audio": False},
             async_processing=True,
         )
+
 
     # ----- OPTION 2: TAKE A SNAPSHOT (Photo Mode) -----
     elif detection_mode == "Take a Snapshot (Photo)":
