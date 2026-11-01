@@ -202,65 +202,43 @@ elif page == "Video Detection":
 
     if uploaded_video and st.button("Start Video Detection"):
 
-        with st.spinner("Processing video... Please wait"):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
+            input_file.write(uploaded_video.getvalue())
+            input_path = input_file.name
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
-                input_file.write(uploaded_video.getvalue())
-                input_path = input_file.name
+        cap = cv2.VideoCapture(input_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # Screen par live result dikhane ke liye khali container
+        FRAME_WINDOW = st.image([])
+        progress = st.progress(0)
+        frame_count = 0
 
-            cap = cv2.VideoCapture(input_path)
+        st.info("Video processing shuru ho gayi hai. Niche live frames check karein:")
 
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            if not fps or fps <= 0:
-                fps = 25
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            # YOLO v8 Prediction (List se index [0] nikal kar save kiya hai)
+            results = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
+            result = results[0]
+            
+            # Frame par boxes draw karna
+            annotated_frame = result.plot()
+            annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+            
+            # Direct screen par frame ko update karna (Bina kisi video player ke jhanjhat ke)
+            FRAME_WINDOW.image(annotated_frame, use_container_width=True)
+            
+            frame_count += 1
+            if total_frames > 0:
+                progress.progress(min(frame_count / total_frames, 1.0))
 
-            final_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+        cap.release()
+        st.success("Video mukammal analyze ho chuki hai!")
 
-            # Direct browser-compatible codec (avc1)
-            writer = cv2.VideoWriter(
-                final_output_path,
-                cv2.VideoWriter_fourcc(*"avc1"),
-                fps,
-                (width, height)
-            )
-
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            progress = st.progress(0)
-            frame_count = 0
-
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    break
-
-                # FIXED: [0] lagaya hai taake list se pehla frame nikal kar plot() ho sake
-                result = model.predict(frame, conf=0.35, imgsz=640, verbose=False)[0]
-                writer.write(result.plot())
-                frame_count += 1
-
-                if total_frames > 0:
-                    progress.progress(min(frame_count / total_frames, 1.0))
-
-            cap.release()
-            writer.release()
-
-        st.success("Video detection completed successfully!")
-
-        with open(final_output_path, "rb") as file:
-            video_bytes = file.read()
-
-        # Direct player mein output chal parega bina ghoome
-        st.video(video_bytes)
-
-        st.download_button(
-            "⬇️ Download Processed Video",
-            data=video_bytes,
-            file_name="helmet_detection_result.mp4",
-            mime="video/mp4"
-        )
 
 
 # ---------------- LIVE DETECTION ----------------
