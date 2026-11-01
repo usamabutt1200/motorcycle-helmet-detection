@@ -285,34 +285,49 @@ elif page == "Live Detection":
     )
     st.markdown("---")
 
-    # ----- OPTION 1: CONTINUOUS LIVE STREAM (Real-Time Bina Click Kiye) -----
+    # ----- OPTION 1: CONTINUOUS LIVE STREAM (Optimized for No-Lag) -----
     if detection_mode == "Continuous Live Stream (Automatic Detection)":
         st.subheader("📡 Continuous Real-Time Detection")
-        st.write("Camera ke samne aayein, AI bina click liye live detect karega.")
+        st.write("Camera ke samne aayein. (Speed optimize kar di gayi hai taake hang na ho).")
         
-        # Callback function jo live video ke har frame par boxes draw karega
+        # Frame counter taake hum frames skip kar sakein aur server hang na ho
+        if "frame_counter" not in st.session_state:
+            st.session_state.frame_counter = 0
+
         def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
+            st.session_state.frame_counter += 1
             img = frame.to_ndarray(format="bgr24")
             
-            # AI automatic prediction
-            results = model.predict(img, conf=0.35, imgsz=640, verbose=False)
-            annotated_frame = results.plot()
+            # Har 3 frames mein se sirf 1 frame par AI chalayein taake lag khatam ho
+            if st.session_state.frame_counter % 3 == 0:
+                # imgsz=320 karne se model buhat halka aur fast chale ga
+                results = model.predict(img, conf=0.35, imgsz=320, verbose=False)[0]
+                annotated_frame = results.plot()
+                return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
             
-            return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
+            # Baaki frames bina process kiye chalne dein taake video smooth rahe
+            return frame
 
-        # Streamlit WebRTC Streamer - BINA KISI CONFIG KE (Hamesha Working)
+        # WebRTC Streamer Tool
         webrtc_streamer(
-            key="helmet-detection-final-live",
+            key="helmet-detection-optimized",
             mode=WebRtcMode.SENDRECV,
             video_frame_callback=video_frame_callback,
-            media_stream_constraints={"video": True, "audio": False},
+            media_stream_constraints={
+                "video": {
+                    "width": {"ideal": 640},
+                    "height": {"ideal": 480},
+                    "frameRate": {"ideal": 15} # Frame rate kam rakhne se black screen nahi aati
+                },
+                "audio": False
+            },
             async_processing=True,
         )
 
     # ----- OPTION 2: TAKE A SNAPSHOT (Photo Mode) -----
     elif detection_mode == "Take a Snapshot (Photo Mode)":
         st.subheader("📸 Snapshot Detection")
-        img_file_buffer = st.camera_input("Take a picture to analyze", key="snapshot_cam_fixed")
+        img_file_buffer = st.camera_input("Take a picture to analyze", key="snapshot_cam_final")
 
         if img_file_buffer is not None:
             bytes_data = img_file_buffer.getvalue()
