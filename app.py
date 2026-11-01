@@ -1,11 +1,9 @@
 import streamlit as st
 import cv2
-import av
 import tempfile
 import numpy as np
 from PIL import Image
 from ultralytics import YOLO
-from streamlit_webrtc import webrtc_streamer, RTCConfiguration, WebRtcMode
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -46,6 +44,7 @@ div.stDownloadButton > button {
     border-radius: 10px;
     font-weight: bold;
     min-height: 45px;
+    width: 100%;
 }
 div.stButton > button:hover,
 div.stDownloadButton > button:hover {
@@ -73,19 +72,14 @@ def load_model():
 try:
     model = load_model()
 except Exception as e:
-    st.error("Model load nahi ho saka. Check karein ke helmet_model.pt repository mein mojood hai.")
+    st.error("Critical Error: Failed to initialize helmet_model.pt. Verify its presence in the repository.")
     st.stop()
 
-# ---------------- STUN CONFIGURATION FOR CLOUD WEBCAM ----------------
-# Is format ko browser bina kisi error ke parse kar leta hai
-RTC_CONFIGURATION = {
-    "iceServers": [
-        {
-            "urls": ["stun:://google.com"]
-        }
-    ]
-}
-
+# ---------------- SESSION STATE INITIALIZATION ----------------
+if "video_data_buffer" not in st.session_state:
+    st.session_state.video_data_buffer = None
+if "last_processed_file" not in st.session_state:
+    st.session_state.last_processed_file = None
 
 # ---------------- HEADER ----------------
 st.markdown("""
@@ -93,248 +87,180 @@ st.markdown("""
     <h1>🪖 HELMET AI</h1>
     <h3>Motorcycle Helmet Detection System</h3>
     <p class="small-text">
-        Intelligent AI-powered helmet detection platform
+        Intelligent AI-powered helmet detection platform for real-time safety enforcement.
     </p>
 </div>
 """, unsafe_allow_html=True)
 
-# ---------------- SIDEBAR ----------------
+# ---------------- SIDEBAR NAVIGATION ----------------
 st.sidebar.markdown("# 🪖 HELMET AI")
 st.sidebar.markdown("---")
 
 page = st.sidebar.radio(
-    "NAVIGATION",
+    "NAVIGATION PANEL",
     ["Dashboard", "Image Detection", "Video Detection", "Live Detection"]
 )
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Powered by YOLOv8")
+st.sidebar.caption("Powered by YOLOv8 Ecosystem")
 
 # ---------------- DASHBOARD ----------------
 if page == "Dashboard":
-    st.title("Dashboard")
-    st.write("Welcome to Helmet AI")
+    st.title("System Dashboard")
+    st.write("Welcome to the Helmet AI Analytical Platform. Select a module from the sidebar to begin processing.")
 
     col1, col2, col3 = st.columns(3)
-
     with col1:
-        st.markdown("""
-        <div class="card">
-            <h2>📷 Image</h2>
-            <p>Detect helmets in uploaded images.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
+        st.markdown('<div class="card"><h2>📷 Image Mode</h2><p>Execute precision detection on uploaded static images.</p></div>', unsafe_allow_html=True)
     with col2:
-        st.markdown("""
-        <div class="card">
-            <h2>🎥 Video</h2>
-            <p>Analyze videos and download results.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
+        st.markdown('<div class="card"><h2>🎥 Video Mode</h2><p>Process dynamic recordings with automated high-speed inference matching.</p></div>', unsafe_allow_html=True)
     with col3:
-        st.markdown("""
-        <div class="card">
-            <h2>📡 Live</h2>
-            <p>Detect helmets through your webcam.</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="card"><h2>📸 Snapshot Mode</h2><p>Capture instant image streams from your camera input.</p></div>', unsafe_allow_html=True)
 
 # ---------------- IMAGE DETECTION ----------------
 elif page == "Image Detection":
-    st.title("📷 Image Detection")
+    st.title("📷 Static Image Analytics")
 
-    uploaded_image = st.file_uploader(
-        "Upload an image",
-        type=["jpg", "jpeg", "png"]
-    )
+    uploaded_image = st.file_uploader("Upload target asset source", type=["jpg", "jpeg", "png"])
 
     if uploaded_image:
         image = Image.open(uploaded_image).convert("RGB")
 
-        if st.button("Run Detection"):
-            with st.spinner("Analyzing image..."):
-                result = model.predict(
-                    np.array(image),
-                    conf=0.35,
-                    imgsz=640,
-                    verbose=False
-                )[0]
-
-                annotated = result.plot()
-                annotated = cv2.cvtColor(
-                    annotated, cv2.COLOR_BGR2RGB
-                )
+        if st.button("Execute Neural Inference"):
+            with st.spinner("Analyzing structural visual fields..."):
+                results = model.predict(np.array(image), conf=0.35, imgsz=640, verbose=False)
+                result = results[0]
+                annotated = cv2.cvtColor(result.plot(), cv2.COLOR_BGR2RGB)
 
             col1, col2 = st.columns(2)
-
             with col1:
-                st.subheader("Original Image")
+                st.subheader("Source Asset")
                 st.image(image, use_container_width=True)
-
             with col2:
-                st.subheader("Detection Result")
+                st.subheader("Inference Result Map")
                 st.image(annotated, use_container_width=True)
 
-            st.subheader("Detection Details")
-
+            st.subheader("Object Metrics Log")
             if result.boxes is None or len(result.boxes) == 0:
-                st.info("No helmets detected.")
+                st.info("Zero violations detected. Target area compliant.")
             else:
                 for box in result.boxes:
                     class_id = int(box.cls[0])
                     confidence = float(box.conf[0]) * 100
                     label = model.names[class_id]
+                    st.write(f"Class Signature: **{label}** — Inference Confidence: {confidence:.2f}%")
 
-                    st.write(
-                        f"**{label}** — {confidence:.1f}% confidence"
-                    )
-
-# ---------------- VIDEO DETECTION ----------------
+# ---------------- DYNAMIC VIDEO DETECTION ----------------
 elif page == "Video Detection":
-    st.title("🎥 Fast Video Detection")
+    st.title("🎥 Dynamic Video Analytics")
 
-    uploaded_video = st.file_uploader(
-        "Upload a video",
-        type=["mp4", "avi", "mov", "mkv"]
-    )
+    uploaded_video = st.file_uploader("Upload dynamic video stream sequence", type=["mp4", "avi", "mov", "mkv"])
 
-    if uploaded_video and st.button("Start Fast Video Detection"):
+    # Clear cached bytes if a brand new video file is uploaded
+    if uploaded_video:
+        current_file_key = f"video_{uploaded_video.name}_{uploaded_video.size}"
+        if st.session_state.last_processed_file != current_file_key:
+            st.session_state.video_data_buffer = None
+            st.session_state.last_processed_file = current_file_key
 
-        with st.spinner("AI high-speed engine video ko process kar raha hai... Please wait"):
+    # Execution UI View Context Container
+    processing_placeholder = st.empty()
 
-            # 1. Uploaded video ko temporary file mein save karna
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
-                input_file.write(uploaded_video.getvalue())
-                input_path = input_file.name
+    if uploaded_video and st.session_state.video_data_buffer is None:
+        # Wrap execution UI layout items inside this block container
+        with processing_placeholder.container():
+            if st.button("Initialize High-Speed Pipeline Execution"):
+                with st.spinner("Neural engine processing frames dynamically... Please maintain connection."):
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
+                        input_file.write(uploaded_video.getvalue())
+                        input_path = input_file.name
 
-            cap = cv2.VideoCapture(input_path)
+                    cap = cv2.VideoCapture(input_path)
+                    fps = cap.get(cv2.CAP_PROP_FPS) or 25
+                    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            if not fps or fps <= 0:
-                fps = 25
+                    raw_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                    writer = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
 
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    progress_bar = st.progress(0)
+                    frame_count = 0
 
-            # Raw output path jahan OpenCV file likhega
-            raw_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                    while cap.isOpened():
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
 
-            # H264 baseline encoder settings
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            writer = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
+                        # Speed optimization: Alternating frames + lightweight inference resolution
+                        if frame_count % 2 == 0:
+                            results = model.predict(frame, conf=0.35, imgsz=320, verbose=False)
+                            annotated_frame = results[0].plot()
+                        else:
+                            annotated_frame = frame
 
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            progress = st.progress(0)
-            frame_count = 0
+                        writer.write(annotated_frame)
+                        frame_count += 1
 
-            # Frames par YOLO prediction chalana
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    break
+                        if total_frames > 0:
+                            progress_bar.progress(min(frame_count / total_frames, 1.0))
 
-                # High-speed check
-                if frame_count % 2 == 0:
-                    # FIXED: [0] lagaya hai taake list se results nikal kar plot() ho sake
-                    results = model.predict(frame, conf=0.35, imgsz=320, verbose=False)[0]
-                    annotated_frame = results.plot()
-                else:
-                    annotated_frame = frame
+                    cap.release()
+                    writer.release()
 
-                writer.write(annotated_frame)
-                frame_count += 1
+                    # Load fully processed tracking data into state memory safely
+                    with open(raw_output_path, "rb") as raw_file:
+                        st.session_state.video_data_buffer = raw_file.read()
+                
+                # Triggers layout rerun immediately after processing is finished
+                st.rerun()
 
-                if total_frames > 0:
-                    progress.progress(min(frame_count / total_frames, 1.0))
-
-            cap.release()
-            writer.release()
-
-        # ----- 2. SECURE BINARY-FREE DOWNLOAD LOOP -----
-        st.success("AI video processing mukammal ho chuki hai!")
+    # Success Dashboard Output Layout (Appears after cleanup)
+    if st.session_state.video_data_buffer is not None:
+        # Completely collapse and destroy progress bars, spinners, and initialization toggles
+        processing_placeholder.empty() 
         
-        try:
-            # File ko direct binary modes mein bytes memory mein transfer karna
-            with open(raw_output_path, "rb") as raw_file:
-                video_bytes = raw_file.read()
-            
-            # Agar file empty nahi hai toh guaranteed download hoga
-            if len(video_bytes) > 0:
-                st.info("Niche diye gaye button se processed video download karlein:")
-                st.download_button(
-                    label="⬇️ Download Processed Video",
-                    data=video_bytes,
-                    file_name="helmet_detection_result.mp4",
-                    mime="video/mp4",
-                    key="download_btn_fixed"
-                )
-            else:
-                st.error("Server configuration issue ki wajah se file generate nahi ho saki. Please retry karein.")
-        except Exception as file_err:
-            st.error(f"File read karne mein masla aaya: {str(file_err)}")
+        st.success("Analysis Pipeline Complete! The tracking process is successful.")
+        st.markdown('<div class="card"><h3>🎯 Ready to Export Asset File</h3></div>', unsafe_allow_html=True)
+        
+        # Immediate memory stream download interaction loop block
+        st.download_button(
+            label="⬇️ Download Processed Output File",
+            data=st.session_state.video_data_buffer,
+            file_name="helmet_detection_processed.mp4",
+            mime="video/mp4",
+            key="instant_download_node"
+        )
 
-# ---------------- LIVE DETECTION ----------------
+# ---------------- STATIC SNAPSHOT LIVE DETECTION ----------------
 elif page == "Live Detection":
-    st.title("📡 Smart Live Helmet Detection")
-    
-    detection_mode = st.radio(
-        "CHOOSE DETECTION MODE:",
-        ["Continuous Live Stream (Automatic Detection)", "Take a Snapshot (Photo Mode)"]
-    )
+    st.title("📸 Precision Snapshot Analytics")
+    st.write("Native single-frame capture mode to guarantee consistent application runtime stability.")
     st.markdown("---")
 
-    # ----- OPTION 1: CONTINUOUS LIVE STREAM (Built-in Auto Refresh Loop) -----
-    if detection_mode == "Continuous Live Stream (Automatic Detection)":
-        st.subheader("📡 Continuous Real-Time Detection")
-        st.write("Camera open rakhein, AI bina kisi click ke automatic live update karta rahega.")
+    # Pure snapshot approach to prevent processing lags or connection failures
+    img_file_buffer = st.camera_input("Capture view matrix frame target")
+
+    if img_file_buffer is not None:
+        bytes_data = img_file_buffer.getvalue()
+        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
         
-        # Streamlit official camera widget जो solid chalta hai
-        img_file_buffer = st.camera_input("Webcam Feed Active", key="auto_live_cam")
-
-        if img_file_buffer is not None:
-            bytes_data = img_file_buffer.getvalue()
-            cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+        with st.spinner("Parsing localized feature mappings..."):
+            # Execute prediction with index slicing fix applied
+            results = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)
+            result = results[0]
+            annotated = cv2.cvtColor(result.plot(), cv2.COLOR_BGR2RGB)
             
-            # Model prediction (Fast processing ke liye imgsz=320)
-            result = model.predict(cv2_img, conf=0.35, imgsz=320, verbose=False)[0]
-            annotated = result.plot()
-            annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-            
-            # Direct screen par bounding boxes dikhana
-            st.subheader("🎯 Real-Time Detection Output")
-            st.image(annotated, use_container_width=True)
-            
-            # Details display
-            if result.boxes is not None and len(result.boxes) > 0:
-                for box in result.boxes:
-                    class_id = int(box.cls)
-                    confidence = float(box.conf) * 100
-                    label = model.names[class_id]
-                    st.success(f"**{label}** detect hua — {confidence:.1f}%")
-            else:
-                st.info("Filhal samne koi helmet ya person nazar nahi aaya.")
-            
-            # BINA KISI EXTERNAL LIBRARY KE AUTOMATIC RERUN (Bina click kiye loop)
-            # Jab bhi camera par naya frame badle ga, page khud ba khud bina lag ke refresh hoga
-            st.rerun()
-
-    # ----- OPTION 2: TAKE A SNAPSHOT (Photo Mode) -----
-    elif detection_mode == "Take a Snapshot (Photo Mode)":
-        st.subheader("📸 Snapshot Detection")
-        img_file_buffer = st.camera_input("Take a picture to analyze", key="snapshot_cam_final_fixed")
-
-        if img_file_buffer is not None:
-            bytes_data = img_file_buffer.getvalue()
-            cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-            
-            with st.spinner("Analyzing Snapshot..."):
-                result = model.predict(cv2_img, conf=0.35, imgsz=640, verbose=False)[0]
-                annotated = result.plot()
-                annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-                
-            st.image(annotated, use_container_width=True)
-
-
-
+        st.subheader("🎯 Snapshot Verification Analysis")
+        st.image(annotated, use_container_width=True)
+        
+        if result.boxes is not None and len(result.boxes) > 0:
+            for box in result.boxes:
+                class_id = int(box.cls[0])
+                confidence = float(box.conf[0]) * 100
+                label = model.names[class_id]
+                st.error(f"Incident Event Flagged: **{label}** verified with a threshold of {confidence:.2f}%")
+        else:
+            st.success("Target environment assessment clear. No infractions logged.")
