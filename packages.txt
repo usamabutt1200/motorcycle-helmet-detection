@@ -1,2 +1,6 @@
 libgl1
 libglib2.0-0
+libavformat-dev
+libavcodec-dev
+libavdevice-dev
+libavutil-dev
