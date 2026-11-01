@@ -193,18 +193,17 @@ elif page == "Image Detection":
 
 # ---------------- VIDEO DETECTION ----------------
 elif page == "Video Detection":
-    st.title("🎥 Video Detection")
+    st.title("🎥 Fast Video Detection")
 
     uploaded_video = st.file_uploader(
         "Upload a video",
         type=["mp4", "avi", "mov", "mkv"]
     )
 
-    if uploaded_video and st.button("Start Video Detection"):
+    if uploaded_video and st.button("Start Fast Video Detection"):
 
-        with st.spinner("AI high-quality video ko process kar raha hai... Please wait"):
+        with st.spinner("AI high-speed engine video ko process kar raha hai... Please wait"):
 
-            # 1. Uploaded video ko temporary file mein save karna
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as input_file:
                 input_file.write(uploaded_video.getvalue())
                 input_path = input_file.name
@@ -218,10 +217,8 @@ elif page == "Video Detection":
             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            # Raw output path jahan OpenCV file likhega
             raw_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
-            # Standard temporary encoder
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             writer = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
 
@@ -229,14 +226,18 @@ elif page == "Video Detection":
             progress = st.progress(0)
             frame_count = 0
 
-            # Frames par YOLO prediction chalana
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
 
-                results = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
-                annotated_frame = results[0].plot()
+                # SPEED OPTIMIZATION 1 & 2: Har 2 mein se 1 frame process hoga aur imgsz=320 hoga
+                if frame_count % 2 == 0:
+                    results = model.predict(frame, conf=0.35, imgsz=320, verbose=False)
+                    annotated_frame = results[0].plot()
+                else:
+                    # Baaki frames par purana ya current frame bina predict kiye write kar dein taake video complete rahe
+                    annotated_frame = frame
 
                 writer.write(annotated_frame)
                 frame_count += 1
@@ -247,13 +248,11 @@ elif page == "Video Detection":
             cap.release()
             writer.release()
 
-        # ----- 2. FFMPEG CONVERSION FOR BROWSER PLAYBACK & DOWNLOAD -----
-        with st.spinner("Video ko download aur play karne ke liye convert kiya ja raha hai..."):
+        with st.spinner("Video download ke liye ready ki ja rahi hai..."):
             try:
                 import ffmpeg
                 final_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                 
-                # Raw video ko standard H.264 codec mein convert karna jo har jagah chalta hai
                 (
                     ffmpeg
                     .input(raw_output_path)
@@ -267,19 +266,16 @@ elif page == "Video Detection":
                 with open(final_output_path, "rb") as video_file:
                     video_bytes = video_file.read()
 
-                # Browser player
                 st.video(video_bytes)
 
-                # Download button
                 st.download_button(
                     "⬇️ Download Processed HD Video",
                     data=video_bytes,
-                    file_name="helmet_detection_hd_result.mp4",
+                    file_name="helmet_detection_fast_result.mp4",
                     mime="video/mp4"
                 )
 
             except Exception as e:
-                # Agar ffmpeg cloud par temporary stuck ho, toh safe side direct download de dein
                 st.warning("Video direct player mein load nahi ho saki, lekin aap niche button se direct download kar sakte hain!")
                 with open(raw_output_path, "rb") as raw_file:
                     raw_bytes = raw_file.read()
@@ -289,6 +285,7 @@ elif page == "Video Detection":
                     file_name="helmet_detection_result.mp4",
                     mime="video/mp4"
                 )
+
 
 # ---------------- LIVE DETECTION ----------------
 elif page == "Live Detection":
