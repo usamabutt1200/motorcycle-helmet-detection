@@ -77,10 +77,15 @@ except Exception as e:
     st.stop()
 
 # ---------------- STUN CONFIGURATION FOR CLOUD WEBCAM ----------------
-# Yeh google ke free STUN servers hain jo browser aur cloud server ke connection ko basic security clear karte hain
-RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:://google.com"]}]}
-)
+# Is format ko browser bina kisi error ke parse kar leta hai
+RTC_CONFIGURATION = {
+    "iceServers": [
+        {
+            "urls": ["stun:://google.com"]
+        }
+    ]
+}
+
 
 # ---------------- HEADER ----------------
 st.markdown("""
