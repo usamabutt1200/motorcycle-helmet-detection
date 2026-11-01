@@ -285,24 +285,24 @@ elif page == "Live Detection":
     )
     st.markdown("---")
 
-    # ----- OPTION 1: CONTINUOUS LIVE STREAM (WebRTC ke bagair direct automatic loop) -----
+    # ----- OPTION 1: CONTINUOUS LIVE STREAM (Built-in Auto Refresh Loop) -----
     if detection_mode == "Continuous Live Stream (Automatic Detection)":
         st.subheader("📡 Continuous Real-Time Detection")
-        st.write("Camera open rakhein, AI bina kisi click ke automatic live update karega.")
+        st.write("Camera open rakhein, AI bina kisi click ke automatic live update karta rahega.")
         
-        # Streamlit camera widget jo kabhi black screen nahi deta
+        # Streamlit official camera widget जो solid chalta hai
         img_file_buffer = st.camera_input("Webcam Feed Active", key="auto_live_cam")
 
         if img_file_buffer is not None:
             bytes_data = img_file_buffer.getvalue()
             cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
             
-            # Model prediction (imgez=320 fast speed ke liye)
+            # Model prediction (Fast processing ke liye imgsz=320)
             result = model.predict(cv2_img, conf=0.35, imgsz=320, verbose=False)[0]
             annotated = result.plot()
             annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             
-            # Direct screen par output update hona
+            # Direct screen par bounding boxes dikhana
             st.subheader("🎯 Real-Time Detection Output")
             st.image(annotated, use_container_width=True)
             
@@ -313,11 +313,14 @@ elif page == "Live Detection":
                     confidence = float(box.conf) * 100
                     label = model.names[class_id]
                     st.success(f"**{label}** detect hua — {confidence:.1f}%")
+            else:
+                st.info("Filhal samne koi helmet ya person nazar nahi aaya.")
             
-            # Yeh line bina click kiye camera ko auto-refresh karti rahegi
-            st.js_eval(js_expressions="setTimeout(function(){ window.location.reload(); }, 500);")
+            # BINA KISI EXTERNAL LIBRARY KE AUTOMATIC RERUN (Bina click kiye loop)
+            # Jab bhi camera par naya frame badle ga, page khud ba khud bina lag ke refresh hoga
+            st.rerun()
 
-    # ----- OPTION 2: TAKE A SNAPSHOT (Static Photo Mode) -----
+    # ----- OPTION 2: TAKE A SNAPSHOT (Photo Mode) -----
     elif detection_mode == "Take a Snapshot (Photo Mode)":
         st.subheader("📸 Snapshot Detection")
         img_file_buffer = st.camera_input("Take a picture to analyze", key="snapshot_cam_final_fixed")
@@ -332,5 +335,6 @@ elif page == "Live Detection":
                 annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
                 
             st.image(annotated, use_container_width=True)
+
 
 
