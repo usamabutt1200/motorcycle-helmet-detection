@@ -285,49 +285,42 @@ elif page == "Live Detection":
     )
     st.markdown("---")
 
-    # ----- OPTION 1: CONTINUOUS LIVE STREAM (Optimized for No-Lag) -----
+    # ----- OPTION 1: CONTINUOUS LIVE STREAM (WebRTC ke bagair direct automatic loop) -----
     if detection_mode == "Continuous Live Stream (Automatic Detection)":
         st.subheader("📡 Continuous Real-Time Detection")
-        st.write("Camera ke samne aayein. (Speed optimize kar di gayi hai taake hang na ho).")
+        st.write("Camera open rakhein, AI bina kisi click ke automatic live update karega.")
         
-        # Frame counter taake hum frames skip kar sakein aur server hang na ho
-        if "frame_counter" not in st.session_state:
-            st.session_state.frame_counter = 0
+        # Streamlit camera widget jo kabhi black screen nahi deta
+        img_file_buffer = st.camera_input("Webcam Feed Active", key="auto_live_cam")
 
-        def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
-            st.session_state.frame_counter += 1
-            img = frame.to_ndarray(format="bgr24")
+        if img_file_buffer is not None:
+            bytes_data = img_file_buffer.getvalue()
+            cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
             
-            # Har 3 frames mein se sirf 1 frame par AI chalayein taake lag khatam ho
-            if st.session_state.frame_counter % 3 == 0:
-                # imgsz=320 karne se model buhat halka aur fast chale ga
-                results = model.predict(img, conf=0.35, imgsz=320, verbose=False)[0]
-                annotated_frame = results.plot()
-                return av.VideoFrame.from_ndarray(annotated_frame, format="bgr24")
+            # Model prediction (imgez=320 fast speed ke liye)
+            result = model.predict(cv2_img, conf=0.35, imgsz=320, verbose=False)[0]
+            annotated = result.plot()
+            annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
             
-            # Baaki frames bina process kiye chalne dein taake video smooth rahe
-            return frame
+            # Direct screen par output update hona
+            st.subheader("🎯 Real-Time Detection Output")
+            st.image(annotated, use_container_width=True)
+            
+            # Details display
+            if result.boxes is not None and len(result.boxes) > 0:
+                for box in result.boxes:
+                    class_id = int(box.cls)
+                    confidence = float(box.conf) * 100
+                    label = model.names[class_id]
+                    st.success(f"**{label}** detect hua — {confidence:.1f}%")
+            
+            # Yeh line bina click kiye camera ko auto-refresh karti rahegi
+            st.js_eval(js_expressions="setTimeout(function(){ window.location.reload(); }, 500);")
 
-        # WebRTC Streamer Tool
-        webrtc_streamer(
-            key="helmet-detection-optimized",
-            mode=WebRtcMode.SENDRECV,
-            video_frame_callback=video_frame_callback,
-            media_stream_constraints={
-                "video": {
-                    "width": {"ideal": 640},
-                    "height": {"ideal": 480},
-                    "frameRate": {"ideal": 15} # Frame rate kam rakhne se black screen nahi aati
-                },
-                "audio": False
-            },
-            async_processing=True,
-        )
-
-    # ----- OPTION 2: TAKE A SNAPSHOT (Photo Mode) -----
+    # ----- OPTION 2: TAKE A SNAPSHOT (Static Photo Mode) -----
     elif detection_mode == "Take a Snapshot (Photo Mode)":
         st.subheader("📸 Snapshot Detection")
-        img_file_buffer = st.camera_input("Take a picture to analyze", key="snapshot_cam_final")
+        img_file_buffer = st.camera_input("Take a picture to analyze", key="snapshot_cam_final_fixed")
 
         if img_file_buffer is not None:
             bytes_data = img_file_buffer.getvalue()
@@ -339,4 +332,5 @@ elif page == "Live Detection":
                 annotated = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
                 
             st.image(annotated, use_container_width=True)
+
 
