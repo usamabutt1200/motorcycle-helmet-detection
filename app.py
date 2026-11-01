@@ -192,11 +192,48 @@ elif page == "Video Detection":
                             break
 
                         # FIXED: Added [0] index so that correct array is written into the video stream
-                        if frame_count % 2 == 0:
-                            result = model.predict(frame, conf=0.25, imgsz=640, verbose=False)[0]
-                            annotated_frame = result.plot()
-                        else:
-                            annotated_frame = frame
+# ---------------- STATIC SNAPSHOT LIVE DETECTION ----------------
+elif page == "Live Detection":
+    st.title("📸 Precision Snapshot Analytics")
+    st.write("Capture an image to detect helmet violations.")
+    st.markdown("---")
+
+    img_file_buffer = st.camera_input("Capture image")
+
+    if img_file_buffer is not None:
+        bytes_data = img_file_buffer.getvalue()
+        cv2_img = cv2.imdecode(
+            np.frombuffer(bytes_data, np.uint8),
+            cv2.IMREAD_COLOR
+        )
+
+        with st.spinner("Detecting helmets..."):
+            result = model.predict(
+                cv2_img,
+                conf=0.05,
+                imgsz=640,
+                verbose=False
+            )[0]
+
+            annotated = cv2.cvtColor(
+                result.plot(),
+                cv2.COLOR_BGR2RGB
+            )
+
+        st.subheader("🎯 Detection Results")
+        st.image(annotated, use_container_width=True)
+
+        if result.boxes is not None and len(result.boxes) > 0:
+            for box in result.boxes:
+                class_id = int(box.cls[0])
+                confidence = float(box.conf[0]) * 100
+                label = model.names[class_id]
+
+                st.success(
+                    f"Detected: {label} — {confidence:.2f}%"
+                )
+        else:
+            st.warning("No helmet-related objects detected.")
 
                         writer.write(annotated_frame)
                         frame_count += 1
