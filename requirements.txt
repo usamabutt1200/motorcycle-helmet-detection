@@ -2,3 +2,4 @@ streamlit
 setuptools
 opencv-python-headless
 ultralytics
+PyAV
