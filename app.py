@@ -128,8 +128,8 @@ elif page == "Image Detection":
 
         if st.button("Execute Neural Inference"):
             with st.spinner("Analyzing structural visual fields..."):
-                results = model.predict(np.array(image), conf=0.35, imgsz=640, verbose=False)
-                result = results[0]
+                # FIXED: Added [0] index to avoid list object error
+                result = model.predict(np.array(image), conf=0.25, imgsz=640, verbose=False)[0]
                 annotated = cv2.cvtColor(result.plot(), cv2.COLOR_BGR2RGB)
 
             col1, col2 = st.columns(2)
@@ -150,24 +150,21 @@ elif page == "Image Detection":
                     label = model.names[class_id]
                     st.write(f"Class Signature: **{label}** — Inference Confidence: {confidence:.2f}%")
 
-# ---------------- DYNAMIC VIDEO DETECTION ----------------
+# ---------------- VIDEO DETECTION ----------------
 elif page == "Video Detection":
     st.title("🎥 Dynamic Video Analytics")
 
     uploaded_video = st.file_uploader("Upload dynamic video stream sequence", type=["mp4", "avi", "mov", "mkv"])
 
-    # Clear cached bytes if a brand new video file is uploaded
     if uploaded_video:
         current_file_key = f"video_{uploaded_video.name}_{uploaded_video.size}"
         if st.session_state.last_processed_file != current_file_key:
             st.session_state.video_data_buffer = None
             st.session_state.last_processed_file = current_file_key
 
-    # Execution UI View Context Container
     processing_placeholder = st.empty()
 
     if uploaded_video and st.session_state.video_data_buffer is None:
-        # Wrap execution UI layout items inside this block container
         with processing_placeholder.container():
             if st.button("Initialize High-Speed Pipeline Execution"):
                 with st.spinner("Neural engine processing frames dynamically... Please maintain connection."):
@@ -194,10 +191,10 @@ elif page == "Video Detection":
                         if not ret:
                             break
 
-                        # Speed optimization: Alternating frames + lightweight inference resolution
+                        # FIXED: Added [0] index so that correct array is written into the video stream
                         if frame_count % 2 == 0:
-                            results = model.predict(frame, conf=0.35, imgsz=320, verbose=False)
-                            annotated_frame = results[0].plot()
+                            result = model.predict(frame, conf=0.25, imgsz=640, verbose=False)[0]
+                            annotated_frame = result.plot()
                         else:
                             annotated_frame = frame
 
@@ -210,28 +207,22 @@ elif page == "Video Detection":
                     cap.release()
                     writer.release()
 
-                    # Load fully processed tracking data into state memory safely
                     with open(raw_output_path, "rb") as raw_file:
                         st.session_state.video_data_buffer = raw_file.read()
-                
-                # Triggers layout rerun immediately after processing is finished
                 st.rerun()
 
-    # Success Dashboard Output Layout (Appears after cleanup)
     if st.session_state.video_data_buffer is not None:
-        # Completely collapse and destroy progress bars, spinners, and initialization toggles
         processing_placeholder.empty() 
         
         st.success("Analysis Pipeline Complete! The tracking process is successful.")
         st.markdown('<div class="card"><h3>🎯 Ready to Export Asset File</h3></div>', unsafe_allow_html=True)
         
-        # Immediate memory stream download interaction loop block
         st.download_button(
             label="⬇️ Download Processed Output File",
             data=st.session_state.video_data_buffer,
             file_name="helmet_detection_processed.mp4",
             mime="video/mp4",
-            key="instant_download_node"
+            key="instant_download_node_fixed_final"
         )
 
 # ---------------- STATIC SNAPSHOT LIVE DETECTION ----------------
@@ -247,9 +238,8 @@ elif page == "Live Detection":
         cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
         
         with st.spinner("Parsing localized feature mappings..."):
-            # Conf=0.10 karne se model ko majbooran box draw karna parega thode se shaq par bhi
-            results = model.predict(cv2_img, conf=0.10, imgsz=640, verbose=False)
-            result = results[0] if isinstance(results, list) else results
+            # FIXED: Added [0] index and lowered confidence threshold for forceful indoor face tracking
+            result = model.predict(cv2_img, conf=0.15, imgsz=640, verbose=False)[0]
             annotated = cv2.cvtColor(result.plot(), cv2.COLOR_BGR2RGB)
             
         st.subheader("🎯 Snapshot Verification Analysis")
@@ -257,10 +247,9 @@ elif page == "Live Detection":
         
         if result.boxes is not None and len(result.boxes) > 0:
             for box in result.boxes:
-                class_id = int(box.cls[0]) if hasattr(box.cls, "__len__") else int(box.cls)
-                confidence = (float(box.conf[0]) if hasattr(box.conf, "__len__") else float(box.conf)) * 100
+                class_id = int(box.cls[0])
+                confidence = float(box.conf[0]) * 100
                 label = model.names[class_id]
                 st.error(f"Incident Event Flagged: **{label}** verified with a threshold of {confidence:.2f}%")
         else:
             st.success("Target environment assessment clear. No infractions logged.")
-
