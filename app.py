@@ -218,10 +218,10 @@ elif page == "Video Detection":
             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            # Raw temporary output path
+            # Raw output path jahan OpenCV file likhega
             raw_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
 
-            # Standard H264 compatible codec jo base system support karta hai
+            # Standard temporary encoder
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             writer = cv2.VideoWriter(raw_output_path, fourcc, fps, (width, height))
 
@@ -229,18 +229,14 @@ elif page == "Video Detection":
             progress = st.progress(0)
             frame_count = 0
 
-            # Video ke har frame par YOLO prediction chalana
+            # Frames par YOLO prediction chalana
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
                     break
 
                 results = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
-                # List se prediction frame nikal kar write karna
-                if isinstance(results, list):
-                    annotated_frame = results[0].plot()
-                else:
-                    annotated_frame = results.plot()
+                annotated_frame = results[0].plot()
 
                 writer.write(annotated_frame)
                 frame_count += 1
@@ -251,23 +247,48 @@ elif page == "Video Detection":
             cap.release()
             writer.release()
 
-        # ----- 2. STREAMLIT CLOUD COMPATIBLE BYTE DISPLAY -----
-        st.success("Video successfully analyze ho gayi hai! Player load ho raha hai...")
+        # ----- 2. FFMPEG CONVERSION FOR BROWSER PLAYBACK & DOWNLOAD -----
+        with st.spinner("Video ko download aur play karne ke liye convert kiya ja raha hai..."):
+            try:
+                import ffmpeg
+                final_output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                
+                # Raw video ko standard H.264 codec mein convert karna jo har jagah chalta hai
+                (
+                    ffmpeg
+                    .input(raw_output_path)
+                    .output(final_output_path, vcodec='libx264', acodec='copy')
+                    .overwrite_output()
+                    .run(capture_stdout=True, capture_stderr=True)
+                )
 
-        # File ko read kar ke direct st.video ko bytes pass karna bina kisi external codec jhanjhat ke
-        with open(raw_output_path, "rb") as video_file:
-            video_bytes = video_file.read()
+                st.success("Video successfully analyze ho gayi hai!")
 
-        # Browser friendly standard format display
-        st.video(video_bytes, format="video/mp4")
+                with open(final_output_path, "rb") as video_file:
+                    video_bytes = video_file.read()
 
-        # High quality video download button
-        st.download_button(
-            "⬇️ Download Processed HD Video",
-            data=video_bytes,
-            file_name="helmet_detection_hd_result.mp4",
-            mime="video/mp4"
-        )
+                # Browser player
+                st.video(video_bytes)
+
+                # Download button
+                st.download_button(
+                    "⬇️ Download Processed HD Video",
+                    data=video_bytes,
+                    file_name="helmet_detection_hd_result.mp4",
+                    mime="video/mp4"
+                )
+
+            except Exception as e:
+                # Agar ffmpeg cloud par temporary stuck ho, toh safe side direct download de dein
+                st.warning("Video direct player mein load nahi ho saki, lekin aap niche button se direct download kar sakte hain!")
+                with open(raw_output_path, "rb") as raw_file:
+                    raw_bytes = raw_file.read()
+                st.download_button(
+                    "⬇️ Download Processed Video (Direct)",
+                    data=raw_bytes,
+                    file_name="helmet_detection_result.mp4",
+                    mime="video/mp4"
+                )
 
 # ---------------- LIVE DETECTION ----------------
 elif page == "Live Detection":
