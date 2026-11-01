@@ -209,19 +209,22 @@ elif page == "Video Detection":
         cap = cv2.VideoCapture(input_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
-        # Screen par live result dikhane ke liye khali container
-        FRAME_WINDOW = st.image([])
+        # Smooth playback ke liye import time lazmi hai
+        import time
+
+        # st.empty() use karne se purani photo mitti jati hai aur nayi video smooth chalti hai
+        FRAME_WINDOW = st.empty()
         progress = st.progress(0)
         frame_count = 0
 
-        st.info("Video processing shuru ho gayi hai. Niche live frames check karein:")
+        st.info("Video smoothly chal rahi hai. Niche live playback check karein:")
 
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
 
-            # YOLO v8 Prediction (List se index [0] nikal kar save kiya hai)
+            # YOLO v8 Prediction
             results = model.predict(frame, conf=0.35, imgsz=640, verbose=False)
             result = results[0]
             
@@ -229,8 +232,11 @@ elif page == "Video Detection":
             annotated_frame = result.plot()
             annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
             
-            # Direct screen par frame ko update karna (Bina kisi video player ke jhanjhat ke)
+            # Real-time smooth update bina photo freeze kiye
             FRAME_WINDOW.image(annotated_frame, use_container_width=True)
+            
+            # 0.01 ya 0.03 seconds ka chota sa pause browser ko video chalane mein madad deta hai
+            time.sleep(0.01)
             
             frame_count += 1
             if total_frames > 0:
@@ -238,8 +244,6 @@ elif page == "Video Detection":
 
         cap.release()
         st.success("Video mukammal analyze ho chuki hai!")
-
-
 
 # ---------------- LIVE DETECTION ----------------
 elif page == "Live Detection":
