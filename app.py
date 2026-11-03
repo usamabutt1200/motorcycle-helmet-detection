@@ -15,33 +15,104 @@ st.set_page_config(
 # ---------------- PREMIUM DESIGN ----------------
 st.markdown("""
 <style>
-/* ===== PREMIUM SIDEBAR ===== */
 
+/* =================================
+   MAIN WEBSITE DESIGN
+================================= */
+
+.stApp {
+    background: linear-gradient(135deg, #080d18, #111c2e);
+    color: #ffffff;
+}
+
+.block-container {
+    padding-top: 2rem;
+    max-width: 1250px;
+}
+
+/* HEADINGS */
+h1, h2, h3 {
+    color: #f5c76b !important;
+}
+
+/* TEXT */
+p, label {
+    color: #d5dbea;
+}
+
+/* MAIN CONTENT CARDS */
+.card {
+    background: #17243a;
+    padding: 24px;
+    border: 1px solid #34435b;
+    border-radius: 18px;
+    margin-bottom: 18px;
+}
+
+/* BUTTONS */
+div.stButton > button,
+div.stDownloadButton > button {
+    background: linear-gradient(90deg, #c99a3b, #f5d58a);
+    color: #101827;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    min-height: 45px;
+    transition: 0.2s ease;
+}
+
+div.stButton > button:hover,
+div.stDownloadButton > button:hover {
+    background: #ffffff;
+    color: #101827;
+    border: none;
+}
+
+/* FILE UPLOADER */
+[data-testid="stFileUploader"] {
+    background: #17243a;
+    border: 1px dashed #c99a3b;
+    border-radius: 14px;
+    padding: 15px;
+}
+
+/* SMALL TEXT */
+.small-text {
+    color: #aab6ca;
+    font-size: 14px;
+}
+
+
+/* =================================
+   PREMIUM SIDEBAR DESIGN
+================================= */
+
+/* SIDEBAR BACKGROUND */
 [data-testid="stSidebar"] {
     background: linear-gradient(
         160deg,
         #111c30 0%,
         #0b1220 55%,
         #080d18 100%
-    );
+    ) !important;
+
     border-right: 1px solid rgba(212, 175, 55, 0.25);
 }
 
+/* SIDEBAR SPACING */
 [data-testid="stSidebar"] > div:first-child {
-    padding: 30px 18px;
+    padding: 25px 18px;
 }
 
-/* Brand */
+/* SIDEBAR BRAND */
 [data-testid="stSidebar"] h1 {
     color: #f5c76b !important;
     font-size: 27px !important;
     font-weight: 800 !important;
     letter-spacing: 1px;
-    padding: 12px 0 22px 0;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.25);
 }
 
-/* Navigation heading */
+/* SIDEBAR NAVIGATION HEADING */
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
     color: #8fa2bd !important;
     font-size: 11px !important;
@@ -49,56 +120,76 @@ st.markdown("""
     letter-spacing: 2px;
 }
 
-/* Navigation spacing */
+/* NAVIGATION SPACING */
 [data-testid="stSidebar"] [role="radiogroup"] {
     gap: 10px;
 }
 
-/* Navigation items */
+/* NAVIGATION BUTTONS */
 [data-testid="stSidebar"] [role="radiogroup"] label {
-    background: rgba(27, 43, 66, 0.75);
-    border: 1px solid #293b55;
-    border-radius: 12px;
-    padding: 13px 14px;
-    transition: all 0.25s ease;
+    background: #17243a !important;
+    border: 1px solid #34435b !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    transition: all 0.2s ease;
 }
 
-/* Hover effect */
+/* HOVER EFFECT */
 [data-testid="stSidebar"] [role="radiogroup"] label:hover {
-    background: #243650;
-    border-color: #c99a3b;
-    transform: translateX(3px);
+    background: #263953 !important;
+    border-color: #c99a3b !important;
 }
 
-/* Selected navigation item */
+/* SELECTED PAGE */
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
     background: linear-gradient(
         100deg,
-        #9f762e,
-        #d8b45f
-    );
-    border: 1px solid #f5d58a;
+        #c99a3b,
+        #f5d58a
+    ) !important;
+
+    border: 1px solid #f5d58a !important;
     box-shadow: 0 4px 15px rgba(201, 154, 59, 0.2);
 }
 
-/* Selected text */
+/* SELECTED PAGE TEXT */
 [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) p {
     color: #101827 !important;
     font-weight: 800 !important;
 }
 
-/* Radio buttons */
-[data-testid="stSidebar"] [role="radiogroup"] label div[data-testid="stMarkdownContainer"] p {
+/* SIDEBAR NAVIGATION TEXT */
+[data-testid="stSidebar"] [role="radiogroup"] label p {
     font-size: 14px;
 }
 
-/* Footer */
+/* SIDEBAR FOOTER */
 [data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
     border-top: 1px solid #293b55;
     padding-top: 18px;
     margin-top: 25px;
     color: #8494aa !important;
 }
+
+
+/* =================================
+   IMAGE & VIDEO DISPLAY
+================================= */
+
+[data-testid="stImage"] img {
+    border-radius: 12px;
+}
+
+/* PROGRESS BAR */
+[data-testid="stProgressBar"] > div > div {
+    background-color: #d4af37;
+}
+
+/* SUCCESS MESSAGE */
+[data-testid="stAlert"] {
+    border-radius: 10px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
