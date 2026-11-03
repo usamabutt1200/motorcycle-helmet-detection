@@ -209,15 +209,15 @@ div.stDownloadButton > button::before,
 [data-testid="stFileUploader"]::before {
     content: "";
     position: absolute;
-    inset: -150%;
-    background: conic-gradient(
-        from 0deg,
-        transparent 0deg,
-        transparent 280deg,
-        #c99a3b 315deg,
-        #fff2bd 335deg,
-        transparent 360deg
-    );
+    inset: -130%;
+   background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 265deg,
+    #c99a3b 305deg,
+    #fff2bd 335deg,
+    transparent 360deg
+);
     animation: rotatingGlow 4s linear infinite;
     z-index: -2;
 }
@@ -229,7 +229,7 @@ div.stDownloadButton > button::after,
 [data-testid="stFileUploader"]::after {
     content: "";
     position: absolute;
-    inset: 1.5px;
+    inset: 3px;
     background: #17243a;
     border-radius: inherit;
     z-index: -1;
