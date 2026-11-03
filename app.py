@@ -270,70 +270,65 @@ div.stDownloadButton > button::after,
 [data-testid="stAlert"] > div {
     border-radius: 10px;
 }
-/* ===== PREMIUM SLOW PAGE ANIMATION ===== */
+/* ===== SEQUENTIAL LEFT SLIDE ANIMATION ===== */
 
-@keyframes premiumReveal {
+@keyframes slideFromLeft {
     0% {
         opacity: 0;
-        transform: translateY(45px);
+        transform: translateX(-65px);
     }
 
     100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
     }
 }
 
-/* Main top HELMET AI box */
-.main .card {
-    animation: premiumReveal 1.5s ease both;
+/* Main page elements */
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"] {
+    opacity: 0;
+    animation: slideFromLeft 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* One by one sequence */
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"]:nth-child(1) {
     animation-delay: 0.1s;
 }
 
-/* Page headings */
-.main h1 {
-    animation: premiumReveal 1.4s ease both;
-    animation-delay: 0.3s;
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"]:nth-child(2) {
+    animation-delay: 0.4s;
 }
 
-.main h2 {
-    animation: premiumReveal 1.4s ease both;
-    animation-delay: 0.5s;
-}
-
-/* All content boxes */
-.main .card:nth-of-type(2) {
-    animation-delay: 0.5s;
-}
-
-.main .card:nth-of-type(3) {
-    animation-delay: 0.8s;
-}
-
-.main .card:nth-of-type(4) {
-    animation-delay: 1.1s;
-}
-
-/* Columns */
-.main [data-testid="stHorizontalBlock"] {
-    animation: premiumReveal 1.5s ease both;
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"]:nth-child(3) {
     animation-delay: 0.7s;
 }
 
-/* Image and video upload boxes */
-.main [data-testid="stFileUploader"] {
-    animation: premiumReveal 1.5s ease both;
-    animation-delay: 0.9s;
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"]:nth-child(4) {
+    animation-delay: 1s;
+}
+
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"]:nth-child(5) {
+    animation-delay: 1.3s;
+}
+
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"]:nth-child(6) {
+    animation-delay: 1.6s;
+}
+
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"]:nth-child(7) {
+    animation-delay: 1.9s;
+}
+
+.main [data-testid="stVerticalBlock"] > [data-testid="element-container"]:nth-child(8) {
+    animation-delay: 2.2s;
 }
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
-    .main .card,
-    .main h1,
-    .main h2,
-    .main [data-testid="stHorizontalBlock"],
-    .main [data-testid="stFileUploader"] {
+    .main [data-testid="element-container"] {
         animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
     }
 }
 </style>
