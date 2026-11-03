@@ -250,8 +250,8 @@ div.stDownloadButton > button::after,
     overflow: hidden;
     border: 2px solid transparent;
     border-radius: 12px;
-    background-color: #3D3020 !important;
-border: 1px solid #C99A3B !important;
+   background-color: #17243A !important;
+border: 1px solid #D4AF37 !important;
 color: #F5D58A !important;
 }
 
