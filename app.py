@@ -270,64 +270,69 @@ div.stDownloadButton > button::after,
 [data-testid="stAlert"] > div {
     border-radius: 10px;
 }
-/* ===== STAGGERED PAGE CONTENT ANIMATION ===== */
+/* ===== PREMIUM SLOW PAGE ANIMATION ===== */
 
-@keyframes pageReveal {
-    from {
+@keyframes premiumReveal {
+    0% {
         opacity: 0;
-        transform: translateY(25px);
+        transform: translateY(45px);
     }
 
-    to {
+    100% {
         opacity: 1;
         transform: translateY(0);
     }
 }
 
-/* Main content animation */
-.main .block-container > div {
-    animation: pageReveal 0.7s ease both;
+/* Main top HELMET AI box */
+.main .card {
+    animation: premiumReveal 1.5s ease both;
+    animation-delay: 0.1s;
 }
 
-/* Cards appear one by one */
-.card {
-    animation: pageReveal 0.7s ease both;
-}
-
-/* Columns appear one by one */
-[data-testid="stHorizontalBlock"] {
-    animation: pageReveal 0.8s ease both;
-}
-
-[data-testid="stHorizontalBlock"]:nth-of-type(2) {
-    animation-delay: 0.15s;
-}
-
-[data-testid="stHorizontalBlock"]:nth-of-type(3) {
-    animation-delay: 0.30s;
-}
-
-/* Headings and text */
+/* Page headings */
 .main h1 {
-    animation: pageReveal 0.7s ease both;
+    animation: premiumReveal 1.4s ease both;
+    animation-delay: 0.3s;
 }
 
 .main h2 {
-    animation: pageReveal 0.8s ease both;
+    animation: premiumReveal 1.4s ease both;
+    animation-delay: 0.5s;
 }
 
-.main p {
-    animation: pageReveal 0.9s ease both;
+/* All content boxes */
+.main .card:nth-of-type(2) {
+    animation-delay: 0.5s;
 }
 
-/* Reduced motion accessibility */
+.main .card:nth-of-type(3) {
+    animation-delay: 0.8s;
+}
+
+.main .card:nth-of-type(4) {
+    animation-delay: 1.1s;
+}
+
+/* Columns */
+.main [data-testid="stHorizontalBlock"] {
+    animation: premiumReveal 1.5s ease both;
+    animation-delay: 0.7s;
+}
+
+/* Image and video upload boxes */
+.main [data-testid="stFileUploader"] {
+    animation: premiumReveal 1.5s ease both;
+    animation-delay: 0.9s;
+}
+
+/* Accessibility */
 @media (prefers-reduced-motion: reduce) {
-    .main .block-container > div,
-    .card,
-    [data-testid="stHorizontalBlock"],
+    .main .card,
     .main h1,
     .main h2,
-    .main p {
+    .main [data-testid="stHorizontalBlock"],
+    .main [data-testid="stFileUploader"] {
         animation: none !important;
     }
 }
