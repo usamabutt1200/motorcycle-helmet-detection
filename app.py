@@ -189,7 +189,60 @@ div.stDownloadButton > button:hover {
 [data-testid="stAlert"] {
     border-radius: 10px;
 }
+/* ===== CONTINUOUS ROTATING GLOW BORDER ===== */
 
+.card,
+div.stButton > button,
+div.stDownloadButton > button,
+[data-testid="stFileUploader"],
+[data-testid="stImage"],
+[data-testid="stCameraInput"] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+
+/* Animated light layer */
+.card::before,
+div.stButton > button::before,
+div.stDownloadButton > button::before,
+[data-testid="stFileUploader"]::before {
+    content: "";
+    position: absolute;
+    inset: -150%;
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        transparent 280deg,
+        #c99a3b 315deg,
+        #fff2bd 335deg,
+        transparent 360deg
+    );
+    animation: rotatingGlow 4s linear infinite;
+    z-index: -2;
+}
+
+/* Inner background */
+.card::after,
+div.stButton > button::after,
+div.stDownloadButton > button::after,
+[data-testid="stFileUploader"]::after {
+    content: "";
+    position: absolute;
+    inset: 1.5px;
+    background: #17243a;
+    border-radius: inherit;
+    z-index: -1;
+}
+
+@keyframes rotatingGlow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
