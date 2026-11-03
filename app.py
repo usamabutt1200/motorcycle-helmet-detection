@@ -243,6 +243,33 @@ div.stDownloadButton > button::after,
         transform: rotate(360deg);
     }
 }
+/* OUTPUT MESSAGE BOX GLOW */
+[data-testid="stAlert"] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 12px;
+}
+
+[data-testid="stAlert"]::before {
+    content: "";
+    position: absolute;
+    inset: -150%;
+    background: conic-gradient(
+        transparent 0deg,
+        transparent 265deg,
+        #c99a3b 305deg,
+        #fff2bd 335deg,
+        transparent 360deg
+    );
+    animation: rotatingGlow 2.5s linear infinite;
+    z-index: -1;
+}
+
+[data-testid="stAlert"] > div {
+    border-radius: 10px;
+}
 </style>
 """, unsafe_allow_html=True)
 
