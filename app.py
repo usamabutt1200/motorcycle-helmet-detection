@@ -218,7 +218,7 @@ div.stDownloadButton > button::before,
     #fff2bd 335deg,
     transparent 360deg
 );
-    animation: rotatingGlow 4s linear infinite;
+    animation: rotatingGlow 2.5s linear infinite;
     z-index: -2;
 }
 
