@@ -428,7 +428,7 @@ elif page == "Image Detection":
             with st.spinner("Analyzing structural visual fields..."):
                 result = model.predict(
                     np.array(image),
-                    conf=0.25,
+                    conf=0.45,
                     imgsz=640,
                     verbose=False
                 )[0]
@@ -533,7 +533,7 @@ elif page == "Video Detection":
 
                         result = model.predict(
                             frame,
-                            conf=0.25,
+                            conf=0.45,
                             imgsz=640,
                             verbose=False
                         )[0]
@@ -593,7 +593,7 @@ elif page == "Live Detection":
         with st.spinner("Detecting helmets..."):
             result = model.predict(
                 cv2_img,
-                conf=0.35,
+                conf=0.45,
                 imgsz=640,
                 verbose=False
             )[0]
